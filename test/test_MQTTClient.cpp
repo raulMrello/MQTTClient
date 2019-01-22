@@ -12,6 +12,12 @@
 #include "WifiInterface.h"
 
 static const char *TAG = "Test_MQTTClient";
+static const char *URL = "192.168.254.79";
+static const uint32_t PORT = 1883;
+static const uint8_t MaxSizeOfAliasName = 22;
+static FSManager* fs = NULL;
+static MQTTClient* mqttcli = NULL;
+
 #define P2P_PRODUCT_FAMILY			"XEO"
 #define P2P_PRODUCT_TYPE			"PPL"
 #define P2P_PRODUCT_SERIAL			"XEPPL00000000"
@@ -38,6 +44,7 @@ TEST_CASE("TEST_WIFI_START", "[MQTTClient]")
 #include "mdf_common.h"
 #include "mwifi.h"
 #include "mbed.h"
+#include "FSManager.h"
 
 class test_wifi_registration{
 public:
@@ -58,11 +65,22 @@ public:
 
     void initMQTTClient()
     {
+        MDF_LOGI("Iniciando FSManager");
+        fs = new FSManager("fs");
+        if(fs->ready()){
+            #warning TODO Recuperar datos de backup
+            // ... a�adir c�digo aqu�
+        }
+        MDF_LOGI("FSManager OK!");
+        
+        char dev_name[MaxSizeOfAliasName];
+        strcpy(dev_name, P2P_PRODUCT_SERIAL);
+        
         char root_topic[64];
         sprintf(root_topic, "%s/%s", P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE);
         MDF_LOGI("Iniciando cliente MQTT en root_topic %s", root_topic);
         
-        mqttcli = new MQTTClient(root_topic, dev_name, fs, true, 192.168.254.79, 1883);
+        mqttcli = new MQTTClient(root_topic, dev_name, P2P_PRODUCT_SERIAL, URL, PORT, fs, true);
         
         MBED_ASSERT(mqttcli);
         mqttcli->setPublicationBase("mqtt");
@@ -81,7 +99,7 @@ public:
     }
 
 private:
-	std::list<mdf_event_loop_t> _evlist;
+    std::list<mdf_event_loop_t> _evlist;
 	mdf_err_t _eventLoopCb(mdf_event_loop_t event, void* ctx){
 		switch(event){
 			case MDF_EVENT_MWIFI_ROOT_GOT_IP: {
@@ -89,14 +107,13 @@ private:
 				_handled_count++;
                 MDF_LOGI("Iniciando MQTTClient");
                 initMQTTClient();
+                MDF_LOGI("MQTT iniciado");
 				break;
 			}
 
 			case MDF_EVENT_MWIFI_ROOT_LOST_IP: {
 				MDF_LOGI("TEST, Lost IP");
 				_handled_count++;
-                
-                MDF_LOGI("MQTT iniciado");
 				break;
 			}
 
@@ -124,10 +141,11 @@ TEST_CASE("TEST_WIFI_REGISTRATION", "[MQTTClient]")
 
 	// checks event results
 	int count_ok=0,count_err=0;
-	while((count_ok+count_err)<2){
+	while((count_ok+count_err)==0){
 		Thread::wait(1);
 		t->getCounters(count_ok, count_err);
 	}
+    Thread::wait(10);
 	TEST_ASSERT_EQUAL(count_err, 0);
 }
 

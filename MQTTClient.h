@@ -37,6 +37,9 @@ class MQTTClient : public ActiveModule {
         /* Configuración de cliente mqtt */
         esp_mqtt_client_config_t mqtt_cfg;
 
+        /* Manejador del cliente mqtt */
+        esp_mqtt_client_handle_t clientHandle;
+
         /** Flags de operaciones a realizar por la tarea */
         enum MsgEventFlags{
             WifiUpEvt 		= (State::EV_RESERVED_USER << 0),  	/// Flag activado al estar la wifi levantada (con IP)
@@ -113,6 +116,31 @@ class MQTTClient : public ActiveModule {
          *  @return Resultado
          */
         virtual osStatus putMessage(State::Msg *msg);
+
+        /** Interfaz para obtener un evento osEvent de la clase heredera
+         *  @param msg Mensaje a postear
+         */
+        virtual osEvent getOsEvent();
+
+        /** Chequea la integridad de los datos de configuraci�n <_cfg>. En caso de que algo no sea
+         * 	coherente, restaura a los valores por defecto y graba en memoria NV.
+         * 	@return True si la integridad es correcta, False si es incorrecta
+         */
+        virtual bool checkIntegrity();
+
+
+        /** Establece la configuraci�n por defecto grab�ndola en memoria NV
+         */
+        virtual void setDefaultConfig();
+
+        /** Recupera la configuraci�n de memoria NV
+         */
+        virtual void restoreConfig();
+
+
+        /** Graba la configuraci�n en memoria NV
+         */
+        virtual void saveConfig();
 
         /** Notifica localmente un cambio de estado
          *

@@ -30,6 +30,8 @@ MQTTClient::MQTTClient(const char* root_topic, const char* network_id, const cha
     _publicationCb = callback(this, &MQTTClient::publicationCb);
     _subscriptionCb = callback(this, &MQTTClient::subscriptionCb);
 
+    clientHandle = NULL;
+
     s_mqtt_EventHandle_cb = callback(this, &MQTTClient::mqtt_EventHandler);
 
     setConfigMQTTServer(uri, port);
@@ -83,7 +85,7 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
     mdata->data = NULL;
     int ev = MqttErrorEvt;
 
-    esp_mqtt_client_handle_t client = event->client;
+    clientHandle = event->client;
     int msg_id;
     // your_context_t *context = event->context;
     switch (event->event_id) 
@@ -97,21 +99,21 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
             break;
 
         case MQTT_EVENT_SUBSCRIBED:
-            //DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_SUBSCRIBED");
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_SUBSCRIBED");
             //ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
             //msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
             //ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
-            //DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_UNSUBSCRIBED");
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_UNSUBSCRIBED");
             //ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
             break;
         case MQTT_EVENT_PUBLISHED:
-            //DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_PUBLISHED");
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_PUBLISHED");
             //ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
             break;
         case MQTT_EVENT_DATA:
-            //DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_DATA");
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_DATA");
             printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
             printf("DATA=%.*s\r\n", event->data_len, event->data);
             break;
@@ -119,7 +121,7 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
             ev = MqttErrorEvt;
             break;
         default:
-            //DEBUG_TRACE_I(_EXPR_, _MODULE_, "Other event");
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Other event");
             //ESP_LOGI(TAG, "Other event id:%d", event->event_id);
             break;
     }
@@ -176,8 +178,8 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
         	Heap::memFree(sub_topic_local);
 
             //carga la configuración y ejecuta el cliente mqtt
-            esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
-            esp_mqtt_client_start(client);
+            clientHandle = esp_mqtt_client_init(&mqtt_cfg);
+            esp_mqtt_client_start(clientHandle);
 
         	// publica estado inicial
         	notifyConnStatUpdate();
@@ -185,9 +187,56 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
         	return State::HANDLED;
         }
 
+        case MqttConnEvt:
+        {
+        	DEBUG_TRACE_D(_EXPR_, _MODULE_, "Iniciando subscripción a topics del servidor");
+            int msg_id;
+            for(int i=0; i<MaxSubscribedTopics; i++)
+            {
+                msg_id = esp_mqtt_client_subscribe(clientHandle, _subsc_topic[i], 0);
+                DEBUG_TRACE_D(_EXPR_, _MODULE_, "Iniciando subscripción remota a topic: %s, msg_id=%d", _subsc_topic[i], msg_id);
+            }
+
+            return State::HANDLED;
+        }
+
         default:
         {
         	return State::IGNORED;
         }
     }
+}
+
+osEvent MQTTClient::getOsEvent()
+{
+    return _queue.get();
+}
+
+bool MQTTClient::checkIntegrity()
+{
+    bool success = true;
+
+	// verifico cliente mqtt
+	#warning TODO habilitar verificaciones...
+
+	// chequeo intergridad
+	if(success){
+		return true;
+	}
+	return false;
+}
+
+void MQTTClient::setDefaultConfig()
+{
+
+}
+
+void MQTTClient::restoreConfig()
+{
+
+}
+
+void MQTTClient::saveConfig()
+{
+
 }
