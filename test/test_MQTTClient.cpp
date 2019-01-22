@@ -18,6 +18,9 @@ static const uint8_t MaxSizeOfAliasName = 22;
 static FSManager* fs = NULL;
 static MQTTClient* mqttcli = NULL;
 
+/** Objeto para habilitar trazas de depuraci�n syslog */
+void (*syslog_print)(const char*level, const char* tag, const char* format, ...) = NULL;
+
 #define P2P_PRODUCT_FAMILY			"XEO"
 #define P2P_PRODUCT_TYPE			"PPL"
 #define P2P_PRODUCT_SERIAL			"XEPPL00000000"
