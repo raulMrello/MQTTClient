@@ -13,40 +13,57 @@ static esp_err_t mqtt_EventHandler_cb(esp_mqtt_event_handle_t event)
     return s_mqtt_EventHandle_cb(event);
 };
 
-MQTTClient::MQTTClient(const char* root_topic, const char* network_id, const char* client_id,
-            const char *uri, uint32_t port, FSManager* fs, bool defdbg) : 
+MQTTClient::MQTTClient(const char* rootTopic, const char* networkId,
+            const char *uri, FSManager* fs, bool defdbg) : 
             ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
 {
-    strcpy(_root_topic, root_topic);
-    strcpy(_network_id, network_id);
-    strcpy(_client_id, client_id);
+    init(rootTopic, networkId);
+    setConfigMQTTServer(uri);
+}
 
-    // utiliza el client_id para la suscripción al topic de dispositivo mqtt: cmd/dev/$(client_id)/#
-	sprintf(_subsc_topic[0], "%s/%s/get/#", _root_topic, _network_id);
-    sprintf(_subsc_topic[1], "%s/%s/set/#", _root_topic, _network_id);
+MQTTClient::MQTTClient(const char* rootTopic, const char* networkId,
+            const char *host, uint32_t port, FSManager* fs, bool defdbg) : 
+            ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
+{
+    init(rootTopic, networkId);
+    setConfigMQTTServer(host, port);
+}
 
-    _msg_counter = 0;
+void MQTTClient::init(const char* rootTopic, const char* networkId)
+{
+    strcpy(this->rootTopic, rootTopic);
+    strcpy(this->networkId, networkId);
+
+    // utiliza el networkId para la suscripción al topic de dispositivo mqtt: cmd/dev/$(networkId)/#
+	sprintf(subscTopic[0], "%s/%s/get/#", rootTopic, networkId);
+    sprintf(subscTopic[1], "%s/%s/set/#", rootTopic, networkId);
+
+    msgCounter = 0;
     // Carga callbacks estáticas de publicación/suscripción
     _publicationCb = callback(this, &MQTTClient::publicationCb);
     _subscriptionCb = callback(this, &MQTTClient::subscriptionCb);
 
     clientHandle = NULL;
+    mqttCfg = {};
 
     s_mqtt_EventHandle_cb = callback(this, &MQTTClient::mqtt_EventHandler);
-
-    setConfigMQTTServer(uri, port);
 }
 
-void MQTTClient::setConfigMQTTServer(const char *uri, uint32_t port)
+void MQTTClient::setConfigMQTTServer(const char *uri)
 {
-    mqtt_cfg.event_handle = mqtt_EventHandler_cb;
-    //mqtt_cfg.host = host;
-    mqtt_cfg.uri = uri;
-    mqtt_cfg.port = port;
+    mqttCfg.uri = uri;
+    mqttCfg.event_handle = mqtt_EventHandler_cb;
+}
+
+void MQTTClient::setConfigMQTTServer(const char *host, uint32_t port)
+{
+    mqttCfg.host = host;
+    mqttCfg.port = port;
+    mqttCfg.event_handle = mqtt_EventHandler_cb;
 }
 
 osStatus MQTTClient::putMessage(State::Msg *msg){
-    osStatus ost = _queue.put(msg, ActiveModule::DefaultPutTimeout);
+    osStatus ost = queueSM.put(msg, ActiveModule::DefaultPutTimeout);
     if(ost != osOK){
         DEBUG_TRACE_E(_EXPR_, _MODULE_, "QUEUE_PUT_ERROR %d", ost);
     }
@@ -86,15 +103,17 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
     int ev = MqttErrorEvt;
 
     clientHandle = event->client;
-    int msg_id;
+    int msgId;
     // your_context_t *context = event->context;
     switch (event->event_id) 
     {
         case MQTT_EVENT_CONNECTED:
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_CONNECTED");
             ev = MqttConnEvt;
             break;
 
         case MQTT_EVENT_DISCONNECTED:
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_DISCONNECTED");
             ev = MqttDiscEvt;
             break;
 
@@ -152,35 +171,33 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
     {
         case State::EV_ENTRY:
         {
-        	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Iniciando máquina de estados");
-
         	// restaura la configuración
         	//restoreConfig();
 
         	// realiza la suscripción local ej: "get.set/+/mqtt"
-        	char* sub_topic_local = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
-        	MBED_ASSERT(sub_topic_local);
-        	sprintf(sub_topic_local, "set/+/%s", _sub_topic_base);
-        	if(MQ::MQClient::subscribe(sub_topic_local, &_subscriptionCb) == MQ::SUCCESS){
-        		DEBUG_TRACE_D(_EXPR_, _MODULE_, "Sucripción LOCAL hecha a %s", sub_topic_local);
+            char* subTopicLocal = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
+            MBED_ASSERT(subTopicLocal);
+            sprintf(subTopicLocal, "set/+/%s", _sub_topic_base);
+            if(MQ::MQClient::subscribe(subTopicLocal, &_subscriptionCb) == MQ::SUCCESS){
+        		DEBUG_TRACE_D(_EXPR_, _MODULE_, "Sucripción LOCAL hecha a %s", subTopicLocal);
         	}
         	else{
-        		DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_SUBSC en la suscripción LOCAL a %s", sub_topic_local);
+        		DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_SUBSC en la suscripción LOCAL a %s", subTopicLocal);
         	}
-        	sprintf(sub_topic_local, "get/+/%s", _sub_topic_base);
-        	if(MQ::MQClient::subscribe(sub_topic_local, &_subscriptionCb) == MQ::SUCCESS){
-        		DEBUG_TRACE_D(_EXPR_, _MODULE_, "Sucripción LOCAL hecha a %s", sub_topic_local);
+        	sprintf(subTopicLocal, "get/+/%s", _sub_topic_base);
+        	if(MQ::MQClient::subscribe(subTopicLocal, &_subscriptionCb) == MQ::SUCCESS){
+        		DEBUG_TRACE_D(_EXPR_, _MODULE_, "Sucripción LOCAL hecha a %s", subTopicLocal);
         	}
         	else{
-        		DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_SUBSC en la suscripción LOCAL a %s", sub_topic_local);
+        		DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_SUBSC en la suscripción LOCAL a %s", subTopicLocal);
         	}
 
-        	Heap::memFree(sub_topic_local);
+        	Heap::memFree(subTopicLocal);
 
             //carga la configuración y ejecuta el cliente mqtt
-            clientHandle = esp_mqtt_client_init(&mqtt_cfg);
+            clientHandle = esp_mqtt_client_init(&mqttCfg);
             esp_mqtt_client_start(clientHandle);
-
+            
         	// publica estado inicial
         	notifyConnStatUpdate();
 
@@ -189,12 +206,12 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
         case MqttConnEvt:
         {
-        	DEBUG_TRACE_D(_EXPR_, _MODULE_, "Iniciando subscripción a topics del servidor");
-            int msg_id;
+        	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Iniciando subscripción a topics del servidor");
+            int msgId;
             for(int i=0; i<MaxSubscribedTopics; i++)
             {
-                msg_id = esp_mqtt_client_subscribe(clientHandle, _subsc_topic[i], 0);
-                DEBUG_TRACE_D(_EXPR_, _MODULE_, "Iniciando subscripción remota a topic: %s, msg_id=%d", _subsc_topic[i], msg_id);
+                msgId = esp_mqtt_client_subscribe(clientHandle, subscTopic[i], 1);
+                DEBUG_TRACE_I(_EXPR_, _MODULE_, "Iniciando subscripción remota a topic: %s, msg_id=%d", subscTopic[i], msgId);
             }
 
             return State::HANDLED;
@@ -209,7 +226,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
 osEvent MQTTClient::getOsEvent()
 {
-    return _queue.get();
+    return queueSM.get();
 }
 
 bool MQTTClient::checkIntegrity()

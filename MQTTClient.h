@@ -9,12 +9,13 @@
 class MQTTClient : public ActiveModule {
     public:
         /** Constructor por defecto
-         *  @param root_topic Root del topic base de escucha
-         *  @param client_id Identificador del cliente
+         *  @param rootTopic Root del topic base de escucha
+         *  @param clientId Identificador del cliente
          * 	@param fs Objeto FSManager para operaciones de backup
          * 	@param defdbg Flag para habilitar depuración por defecto
          */
-        MQTTClient(const char* root_topic, const char* network_id, const char* client_id, const char *uri, uint32_t port, FSManager* fs, bool defdbg = false);
+        MQTTClient(const char* rootTopic, const char* networkId, const char *uri, FSManager* fs, bool defdbg = false);
+        MQTTClient(const char* rootTopic, const char* networkId, const char *host, uint32_t port, FSManager* fs, bool defdbg = false);
 
         virtual ~MQTTClient(){}
     
@@ -26,16 +27,15 @@ class MQTTClient : public ActiveModule {
         static const uint8_t MaxSubscribedTopics = 2;
 
         /** Parámetros de conexión estáticos: topics de dispositivo y grupo, id de la red y UID del nodo */
-        char _root_topic[Blob::MaxLengthOfMqttStrings];
-        char _network_id[Blob::MaxLengthOfMqttStrings];
-        char _client_id[Blob::MaxLengthOfMqttStrings];
-        char _subsc_topic[MaxSubscribedTopics][Blob::MaxLengthOfMqttStrings];
+        char rootTopic[Blob::MaxLengthOfMqttStrings];
+        char networkId[Blob::MaxLengthOfMqttStrings];
+        char subscTopic[MaxSubscribedTopics][Blob::MaxLengthOfMqttStrings];
 
         /** Contador de mensajes enviados */
-        uint16_t _msg_counter;
+        uint16_t msgCounter;
 
         /* Configuración de cliente mqtt */
-        esp_mqtt_client_config_t mqtt_cfg;
+        esp_mqtt_client_config_t mqttCfg;
 
         /* Manejador del cliente mqtt */
         esp_mqtt_client_handle_t clientHandle;
@@ -86,9 +86,13 @@ class MQTTClient : public ActiveModule {
         };
 
         /** Cola de mensajes de la m�quina de estados */
-        Queue<State::Msg, MaxQueueMessages> _queue;
+        Queue<State::Msg, MaxQueueMessages> queueSM;
+
+        //Inicializador
+        void init(const char*, const char*);
 
         //Establece los valores de configuración para conectar con el servidor MQTT
+        void setConfigMQTTServer(const char*);
         void setConfigMQTTServer(const char*, uint32_t);
 
         /** Callback invocada al recibir una actualización de un topic local al que está suscrito

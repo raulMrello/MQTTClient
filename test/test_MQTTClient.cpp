@@ -11,19 +11,83 @@
 #include "unity.h"
 #include "WifiInterface.h"
 
-static const char *TAG = "Test_MQTTClient";
+#define P2P_PRODUCT_FAMILY			"XEO"
+#define P2P_PRODUCT_TYPE			"PPL"
+#define P2P_PRODUCT_SERIAL			"XEPPL00000000"
+
 static const char *URL = "192.168.254.79";
 static const uint32_t PORT = 1883;
+static const char *TAG = "Test_MQTTClient";
 static const uint8_t MaxSizeOfAliasName = 22;
 static FSManager* fs = NULL;
 static MQTTClient* mqttcli = NULL;
 
+//-----------------------------------------------------------------------------
+/** Lista de tokens proporcionados */
+static MQ::Token token_list[] = {
+	P2P_PRODUCT_FAMILY,
+	P2P_PRODUCT_TYPE,
+	P2P_PRODUCT_SERIAL,
+    "ack",
+	"astcal",
+	"boot",
+	"calib",
+	"cfg",
+    "cmd",
+	"conn",
+    "dev",
+    "dir",
+	"endis",
+	"energy",
+    "event",
+	"evt",
+	"get",
+    "group",
+	"hmi",
+	"led",
+	"light",
+	"minmax",
+	"modbus",
+	"mqtt",
+	"name",
+    "netm",
+	"ntp",
+	"ping",
+    "pushbutton",
+	"relay",
+    "req",
+	"result",
+    "rpc",
+	"set",
+    "stat",
+    "sync",
+	"sys",
+    "value",
+	"wifi",
+    "zerocross",
+	// Reservo identificadores para hasta un m�ximo de 16 grupos MESH de forma fija.
+	#if defined(ENABLE_MESH)
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
+	"8",
+	"9",
+	"10",
+	"11",
+	"12",
+	"13",
+	"14",
+	"15",
+	#endif
+};
+
 /** Objeto para habilitar trazas de depuraci�n syslog */
 void (*syslog_print)(const char*level, const char* tag, const char* format, ...) = NULL;
-
-#define P2P_PRODUCT_FAMILY			"XEO"
-#define P2P_PRODUCT_TYPE			"PPL"
-#define P2P_PRODUCT_SERIAL			"XEPPL00000000"
 
 //---------------------------------------------------------------------------
 /**
@@ -68,6 +132,21 @@ public:
 
     void initMQTTClient()
     {
+        /**************** MQLib Setup **************/
+
+        // Arranca el broker con la siguiente configuraci�n:
+        //  - Lista de tokens predefinida
+        //  - N�mero m�ximo de caracteres para los topics: 64 caracteres incluyendo fin de cadena '\0'
+        MDF_LOGI("Iniciando MQLib... ");
+        MQ::MQBroker::start(token_list, SizeOfArray(token_list), 64, P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE);
+
+        // Espera a que el broker est� operativo
+        while(!MQ::MQBroker::ready()){
+            Thread::wait(100);
+        }
+        MDF_LOGI("MQLib OK!");
+
+
         MDF_LOGI("Iniciando FSManager");
         fs = new FSManager("fs");
         if(fs->ready()){
@@ -83,7 +162,7 @@ public:
         sprintf(root_topic, "%s/%s", P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE);
         MDF_LOGI("Iniciando cliente MQTT en root_topic %s", root_topic);
         
-        mqttcli = new MQTTClient(root_topic, dev_name, P2P_PRODUCT_SERIAL, URL, PORT, fs, true);
+        mqttcli = new MQTTClient(root_topic, CONFIG_MESH_ID, URL, PORT, fs, true);
         
         MBED_ASSERT(mqttcli);
         mqttcli->setPublicationBase("mqtt");
@@ -148,7 +227,7 @@ TEST_CASE("TEST_WIFI_REGISTRATION", "[MQTTClient]")
 		Thread::wait(1);
 		t->getCounters(count_ok, count_err);
 	}
-    Thread::wait(10);
+    Thread::wait(10000);
 	TEST_ASSERT_EQUAL(count_err, 0);
 }
 
