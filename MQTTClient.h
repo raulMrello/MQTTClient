@@ -5,6 +5,9 @@
 #include "ActiveModule.h"
 #include "MQTTClientBlob.h"
 #include "mqtt_client.h"
+#include "JsonParserBlob.h"
+#include <map>
+#include <mwifi.h>
 
 class MQTTClient : public ActiveModule {
     public:
@@ -27,9 +30,11 @@ class MQTTClient : public ActiveModule {
         static const uint8_t MaxSubscribedTopics = 2;
 
         /** Parámetros de conexión estáticos: topics de dispositivo y grupo, id de la red y UID del nodo */
-        char rootTopic[Blob::MaxLengthOfMqttStrings];
-        char networkId[Blob::MaxLengthOfMqttStrings];
+        char rootNetworkTopic[Blob::MaxLengthOfMqttStrings];
         char subscTopic[MaxSubscribedTopics][Blob::MaxLengthOfMqttStrings];
+
+        /* Mapa para comprobar si la conexión de los subscriptores se ha hecho correctamente*/        
+        std::map<int, bool> topicsSubscribed;
 
         /** Contador de mensajes enviados */
         uint16_t msgCounter;
@@ -37,8 +42,14 @@ class MQTTClient : public ActiveModule {
         /* Configuración de cliente mqtt */
         esp_mqtt_client_config_t mqttCfg;
 
+        /* Flag para comunicar estado */
+        uint32_t statusFlag;
+        bool isConnected;
+
         /* Manejador del cliente mqtt */
         esp_mqtt_client_handle_t clientHandle;
+
+        Callback<void(const char* name, void*, uint16_t)> subscriptionToServerCb;
 
         /** Flags de operaciones a realizar por la tarea */
         enum MsgEventFlags{
@@ -58,9 +69,11 @@ class MQTTClient : public ActiveModule {
             MqttPingRespEvt	= (State::EV_RESERVED_USER << 13),
             MqttDiscEvt		= (State::EV_RESERVED_USER << 14),
             MqttErrorEvt	= (State::EV_RESERVED_USER << 15),
-            MqttUnHndEvt	= (State::EV_RESERVED_USER << 16),	/// <--- Fin flags MQTT
-            RecvCfgSet		= (State::EV_RESERVED_USER << 17),	/// Flag al cambiar la configuraci�n del dispositivo 'cmd/mqtt/cfg/set'
-            FwdMsgLocalEvt	= (State::EV_RESERVED_USER << 18),	/// Flag al solicitar un reenv�o hacia el broker mqtt
+            MqttUnHndEvt	= (State::EV_RESERVED_USER << 16),
+            MqttDataEvt 	= (State::EV_RESERVED_USER << 17),
+            MqttPublishToServer = (State::EV_RESERVED_USER << 18),	/// <--- Fin flags MQTT
+            RecvCfgSet		= (State::EV_RESERVED_USER << 19),	/// Flag al cambiar la configuraci�n del dispositivo 'cmd/mqtt/cfg/set'
+            FwdMsgLocalEvt	= (State::EV_RESERVED_USER << 20),	/// Flag al solicitar un reenv�o hacia el broker mqtt
             //-------------
             UNKNOWN_EVENT	= (State::EV_RESERVED_USER << 31),	/// Flag desconocido
         };
@@ -69,6 +82,7 @@ class MQTTClient : public ActiveModule {
          * 	@var nc Conexi�n mongoose
          * 	@var data Puntero a datos. El puntero puede contener alg�n dato (uint32_t)
          */
+        
         struct MqttEvtMsg_t {
             void *data;
         };
@@ -83,6 +97,18 @@ class MQTTClient : public ActiveModule {
             char topic[Blob::MaxLengthOfMqttStrings];
             char* data;
             uint16_t data_len;
+        };
+
+        struct MqttMsg_t{
+            char* topic;
+            void *data;
+            uint16_t topic_len;
+            uint16_t data_len;
+        };
+
+        struct MeshTopicData_t{
+            char topic[Blob::MaxLengthOfMqttStrings];
+            void* data;
         };
 
         /** Cola de mensajes de la m�quina de estados */
@@ -150,6 +176,24 @@ class MQTTClient : public ActiveModule {
          *
          */
         void notifyConnStatUpdate();
+
+        void parseMqttTopic(char* local_topic, const char* mqtt_topic);
+
+        void parseLocalTopic(char* mqtt_topic, const char* local_topic);
+
+        bool getRelativeTopic(char* relativeTopic, const char* localTopic);
+
+        void subscrToServerCb(const char* topic, void* msg, uint16_t msg_len);
+
+
+        Callback<int32_t(const char*, void *, uint32_t,
+            Callback<void(const char*, int32_t)> *)> myPublisher;
+
+        int32_t publish(const char* topic, void *data, uint32_t data_size,
+            Callback<void(const char*, int32_t)> *publisher);
+
+        int32_t meshPublish (const char* name, void *data, uint32_t datasize,
+            Callback<void(const char*, int32_t)> *publisher);
 
         esp_err_t mqtt_EventHandler(esp_mqtt_event_handle_t event);
 };

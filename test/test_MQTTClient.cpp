@@ -138,7 +138,7 @@ public:
         //  - Lista de tokens predefinida
         //  - N�mero m�ximo de caracteres para los topics: 64 caracteres incluyendo fin de cadena '\0'
         MDF_LOGI("Iniciando MQLib... ");
-        MQ::MQBroker::start(token_list, SizeOfArray(token_list), 64, P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE);
+        MQ::MQBroker::start(token_list, SizeOfArray(token_list), 64, P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE, true);
 
         // Espera a que el broker est� operativo
         while(!MQ::MQBroker::ready()){
