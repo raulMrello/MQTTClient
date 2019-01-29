@@ -17,8 +17,8 @@ class MQTTClient : public ActiveModule {
          * 	@param fs Objeto FSManager para operaciones de backup
          * 	@param defdbg Flag para habilitar depuración por defecto
          */
-        MQTTClient(const char* rootTopic, const char* networkId, const char *uri, FSManager* fs, bool defdbg = false);
-        MQTTClient(const char* rootTopic, const char* networkId, const char *host, uint32_t port, FSManager* fs, bool defdbg = false);
+        MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *uri, FSManager* fs, bool defdbg = false);
+        MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *host, uint32_t port, FSManager* fs, bool defdbg = false);
 
         virtual ~MQTTClient(){}
     
@@ -31,6 +31,7 @@ class MQTTClient : public ActiveModule {
 
         /** Parámetros de conexión estáticos: topics de dispositivo y grupo, id de la red y UID del nodo */
         char rootNetworkTopic[Blob::MaxLengthOfMqttStrings];
+        char clientId[Blob::MaxLengthOfMqttStrings];
         char subscTopic[MaxSubscribedTopics][Blob::MaxLengthOfMqttStrings];
 
         /* Mapa para comprobar si la conexión de los subscriptores se ha hecho correctamente*/        
@@ -115,7 +116,7 @@ class MQTTClient : public ActiveModule {
         Queue<State::Msg, MaxQueueMessages> queueSM;
 
         //Inicializador
-        void init(const char*, const char*);
+        void init(const char*, const char*, const char*);
 
         //Establece los valores de configuración para conectar con el servidor MQTT
         void setConfigMQTTServer(const char*);
@@ -182,6 +183,7 @@ class MQTTClient : public ActiveModule {
         void parseLocalTopic(char* mqtt_topic, const char* local_topic);
 
         bool getRelativeTopic(char* relativeTopic, const char* localTopic);
+        bool getRelativeTopic(char* relativeTopic, const char* localTopic, bool* isOwn);
 
         void subscrToServerCb(const char* topic, void* msg, uint16_t msg_len);
 

@@ -5,6 +5,7 @@
  */
 static const char* _MODULE_ = "[MqttCli].......";
 #define _EXPR_	(ActiveModule::_defdbg)
+#define MQTT_LOCAL_PUBLISHER
 
 mwifi_data_type_t data_type      = {0x0};
 
@@ -15,25 +16,26 @@ static esp_err_t mqtt_EventHandler_cb(esp_mqtt_event_handle_t event)
     return s_mqtt_EventHandle_cb(event);
 };
 
-MQTTClient::MQTTClient(const char* rootTopic, const char* networkId,
+MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
             const char *uri, FSManager* fs, bool defdbg) : 
             ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
 {
-    init(rootTopic, networkId);
+    init(rootTopic, clientId, networkId);
     setConfigMQTTServer(uri);
 }
 
-MQTTClient::MQTTClient(const char* rootTopic, const char* networkId,
+MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
             const char *host, uint32_t port, FSManager* fs, bool defdbg) : 
             ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
 {
-    init(rootTopic, networkId);
+    init(rootTopic, clientId, networkId);
     setConfigMQTTServer(host, port);
 }
 
-void MQTTClient::init(const char* rootTopic, const char* networkId)
+void MQTTClient::init(const char* rootTopic, const char* clientId, const char* networkId)
 {
     sprintf(this->rootNetworkTopic, "%s/%s", rootTopic, networkId);
+    strcpy(this->clientId, clientId);
 
     // utiliza el networkId para la suscripción al topic de dispositivo mqtt: cmd/dev/$(networkId)/#
 	sprintf(subscTopic[0], "%s/%s/get/#", rootTopic, networkId);
@@ -297,12 +299,26 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                 
                 char* relativeTopic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
                 MBED_ASSERT(relativeTopic);
-                if(getRelativeTopic(relativeTopic, localTopic))
+                bool isOwnMsg = false;
+                if(getRelativeTopic(relativeTopic, localTopic, &isOwnMsg))
                 {
                     if((blobData = Blob::DecodeJson(relativeTopic, topicData->data, &blobSize, ActiveModule::_defdbg)) != NULL)
                     {
-                        if((err = publish(localTopic, blobData, blobSize, &_publicationCb)) != MQ::SUCCESS)
-                            DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQLIB_PUB al publicar en topic local '%s' con resultado '%d'", localTopic, err);
+                        // Si el mensaje va dirigido unicamente a este nodo, se envía a MQlib sin
+                        // grupo y sin ID para ser procesado a nivel local. En caso de ir dirigido
+                        // a más nodos, se enviará tal cual para ser procesado por NetworkManager
+                        if(isOwnMsg)
+                        {
+                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Voy a publicar en local");
+                            if((err = publish(relativeTopic, blobData, blobSize, &_publicationCb)) != MQ::SUCCESS)
+                            DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQLIB_PUB al publicar en topic local '%s' con resultado '%d'", localTopic, err);    
+                        }    
+                        else
+                        {
+                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Voy a publicar para mesh");
+                            if((err = publish(localTopic, blobData, blobSize, &_publicationCb)) != MQ::SUCCESS)
+                                DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQLIB_PUB al publicar en topic local '%s' con resultado '%d'", localTopic, err);
+                        }
                         free(blobData);
                     }
                     else{
@@ -324,21 +340,31 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
         case MqttPublishToServer:
         {
             DEBUG_TRACE_I(_EXPR_, _MODULE_, "Solicitud de publicar a servidor");
-            MqttMsg_t* topicData =  (MqttMsg_t*)st_msg->msg;
+            Blob::BaseMsg_t* topicData =  (Blob::BaseMsg_t*)st_msg->msg;
             MBED_ASSERT(topicData);
 
-            if(isConnected){
+            if(isConnected)
+            {
         		char* pubTopic = (char*)malloc(Blob::MaxLengthOfMqttStrings);
         		MBED_ASSERT(pubTopic);
         		parseLocalTopic(pubTopic, topicData->topic);
-        		if(strlen(pubTopic) > 0){
-					DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en el topic %s", pubTopic);
-					char* jsonMsg;
-					if((jsonMsg = Blob::ParseJson(topicData->topic, topicData->data, topicData->data_len, ActiveModule::_defdbg)) != NULL)
+        		if(strlen(pubTopic) > 0)
+                {
+                    char* relativeTopic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
+                    MBED_ASSERT(relativeTopic);
+                    if(getRelativeTopic(relativeTopic, topicData->topic))
                     {
-                        int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg), 1, 0);
-						free(jsonMsg);
-					}
+                        char* jsonMsg;
+                        if((jsonMsg = Blob::ParseJson(relativeTopic, topicData->data, topicData->data_len, ActiveModule::_defdbg)) != NULL)
+                        {
+                            int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg), 1, 0);
+                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d con contenido: %s", msg_id, jsonMsg);
+                        }
+                        free(jsonMsg);
+                    }
+                    else
+                        DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQTT al obtener topic relativo a enviar a MQLib");
+                    free(relativeTopic);
         		}
         		else{
         			DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_PARSE. Al convertir el topic '%s' en topic mqtt", topicData->topic);
@@ -349,14 +375,8 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 				DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_FWD. No se puede enviar la publicaci�n, no hay conexi�n.");
 			}
 
-            DEBUG_TRACE_I(_EXPR_, _MODULE_, "lalala1");
-        	free(topicData->data);
-            DEBUG_TRACE_I(_EXPR_, _MODULE_, "lalala2");
+            free(topicData->data);
             free(topicData->topic);
-            //free(topicData);
-            DEBUG_TRACE_I(_EXPR_, _MODULE_, "lalala3");
-            
-            
 
         	return State::HANDLED;
         }
@@ -402,6 +422,11 @@ void MQTTClient::parseLocalTopic(char* mqtt_topic, const char* local_topic){
 
 bool MQTTClient::getRelativeTopic(char* relativeTopic, const char* localTopic)
 {
+    return getRelativeTopic(relativeTopic, localTopic, NULL);
+}
+
+bool MQTTClient::getRelativeTopic(char* relativeTopic, const char* localTopic, bool* isOwn)
+{
     //Quitamos los parametros de grup y device (el segundo y el tercero)
     char* topic = (char*)malloc(strlen(localTopic)+1);
     strcpy(topic, localTopic);
@@ -410,23 +435,36 @@ bool MQTTClient::getRelativeTopic(char* relativeTopic, const char* localTopic)
 
     sprintf(relativeTopic, "%s/", command);
 
-    for(int i=0; i<2; i++)
+    if(command != NULL)
     {
-        if(command != NULL)
-            command = strtok(NULL, "/");
+        char *grp = strtok(NULL, "/");
+        if(grp != NULL)
+        {
+            char *id = strtok(NULL, "/");
+            if(id != NULL)
+            {
+                //Si el grupo es 0 y el id es del nodo, significa que es un mensaje propio
+                if(atoi(grp) == 0 && strcmp(id, clientId) == 0 && isOwn != NULL)
+                {
+                    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Es propio: %s", id);
+                    *isOwn = true;
+                }
+
+                command = strtok(NULL, "");
+                if(command != NULL)
+                    strcat(relativeTopic, command);
+                else
+                    isCorrect = false;
+            }
+            else
+                isCorrect = false;
+        }
         else
             isCorrect = false;
     }
-
-    if(command != NULL)
-        command = strtok(NULL, "");
     else
         isCorrect = false;
 
-    if(command != NULL)
-        strcat(relativeTopic, command);
-    else
-        isCorrect = false;
     DEBUG_TRACE_I(_EXPR_, _MODULE_, "Relative topic: %s", relativeTopic);
 
     free(topic);
@@ -441,7 +479,7 @@ void MQTTClient::subscrToServerCb(const char* topic, void* msg, uint16_t msg_len
 	State::Msg* op = (State::Msg*)malloc(sizeof(State::Msg));
 	MBED_ASSERT(op);
     
-    MqttMsg_t * mq_msg = (MqttMsg_t *)malloc(sizeof(MqttMsg_t));
+    Blob::BaseMsg_t * mq_msg = (Blob::BaseMsg_t *)malloc(sizeof(Blob::BaseMsg_t));
 	MBED_ASSERT(mq_msg);
 	mq_msg->topic = (char*)malloc(strlen(topic)+1);
 	MBED_ASSERT(mq_msg->topic);

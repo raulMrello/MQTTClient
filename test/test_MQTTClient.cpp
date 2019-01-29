@@ -10,6 +10,7 @@
 #include "MQTTClient.h"
 #include "unity.h"
 #include "WifiInterface.h"
+#include "LightManagerBlob.h"
 
 #define P2P_PRODUCT_FAMILY			"XEO"
 #define P2P_PRODUCT_TYPE			"PPL"
@@ -66,7 +67,7 @@ static MQ::Token token_list[] = {
 	"wifi",
     "zerocross",
 	// Reservo identificadores para hasta un m�ximo de 16 grupos MESH de forma fija.
-	#if defined(ENABLE_MESH)
+	//#if defined(ENABLE_MESH)
 	"0",
 	"1",
 	"2",
@@ -83,7 +84,7 @@ static MQ::Token token_list[] = {
 	"13",
 	"14",
 	"15",
-	#endif
+	//#endif
 };
 
 /** Objeto para habilitar trazas de depuraci�n syslog */
@@ -162,7 +163,7 @@ public:
         sprintf(root_topic, "%s/%s", P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE);
         MDF_LOGI("Iniciando cliente MQTT en root_topic %s", root_topic);
         
-        mqttcli = new MQTTClient(root_topic, CONFIG_MESH_ID, URL, PORT, fs, true);
+        mqttcli = new MQTTClient(root_topic, dev_name, CONFIG_MESH_ID, URL, PORT, fs, true);
         
         MBED_ASSERT(mqttcli);
         mqttcli->setPublicationBase("mqtt");
@@ -231,3 +232,43 @@ TEST_CASE("TEST_WIFI_REGISTRATION", "[MQTTClient]")
 	TEST_ASSERT_EQUAL(count_err, 0);
 }
 
+bool testFin = false;
+
+void publicationCb(const char* topic, int32_t result)
+{
+	MDF_LOGI("PUB_DONE en topic local '%s' con resultado '%d'", topic, result);
+	testFin = true;
+}
+
+TEST_CASE("TEST_MQTTClient_PUBLISH", "[MQTTClient]")
+{
+	esp_log_level_set(TAG, ESP_LOG_DEBUG);
+
+	Blob::LightStatData_t light = {1,5};
+
+	MQ::PublishCallback pubMQTT = callback(publicationCb);
+
+	MQ::MQClient::publish("stat/0/XEPPL00000000/value/light", &light, sizeof(Blob::LightStatData_t), &pubMQTT);
+
+	while(!testFin)
+	{
+		Thread::wait(1);
+	}
+	Thread::wait(2000);
+	TEST_ASSERT_EQUAL(1, MDF_OK);
+}
+
+
+/*TEST_CASE("TEST_MQTTClient_SUBSCRIBER", "[MQTTClient]")
+{
+	esp_log_level_set(TAG, ESP_LOG_DEBUG);
+
+	MQ::MQClient::publish("stat/value/light", &light, sizeof(Blob::LightStatData_t), &pubMQTT);
+
+	while(!testFin)
+	{
+		Thread::wait(1);
+	}
+	Thread::wait(2000);
+	TEST_ASSERT_EQUAL(1, MDF_OK);
+}*/
