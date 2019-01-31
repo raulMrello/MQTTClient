@@ -51,7 +51,6 @@ void MQTTClient::init(const char* rootTopic, const char* clientId, const char* n
     clientHandle = NULL;
     mqttCfg = {};
     topicsSubscribed.clear();
-    statusFlag = 0;
     isConnected = false;
 
     #if defined(MQTT_LOCAL_PUBLISHER)
@@ -194,7 +193,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
         case State::EV_ENTRY:
         {
         	// Marca el estado como conectando
-            statusFlag = 0;
+            connStatus = Blob::Subscribing;
 
         	// realiza la suscripción local ej: "get.set/+/mqtt"
             char* subTopicLocal = (char*)malloc(MQ::MQClient::getMaxTopicLen());
@@ -237,7 +236,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
         case MqttConnEvt:
         {
-            statusFlag = 1;
+            connStatus = Blob::RequestedDev;
         	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Iniciando subscripción a topics del servidor");
             int msgId;
             for(int i=0; i<MaxSubscribedTopics; i++)
@@ -265,7 +264,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
             {
                 topicsSubscribed.clear();
                 //comunicar a mqlib que el modulo está disponible
-                statusFlag = 2;
+                connStatus = Blob::SubscribedDev;
                 notifyConnStatUpdate();
                 DEBUG_TRACE_I(_EXPR_, _MODULE_, "Todos los topics subscritos");
             }
@@ -390,11 +389,11 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
 void MQTTClient::notifyConnStatUpdate()
 {
-	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%d", statusFlag);
+	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%d", connStatus);
     char* pub_topic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
 	MBED_ASSERT(pub_topic);
 	sprintf(pub_topic, "stat/conn/%s", _pub_topic_base);
-	MQ::MQClient::publish(pub_topic, &statusFlag, sizeof(Blob::MqttStatusFlags), &_publicationCb);
+	MQ::MQClient::publish(pub_topic, &connStatus, sizeof(Blob::MqttStatusFlags), &_publicationCb);
 	free(pub_topic);
 }
 

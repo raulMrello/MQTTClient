@@ -26,8 +26,8 @@ static const uint8_t MaxLengthOfMqttStrings = 64;
 /** Estados del cliente MQTT */
 enum MqttStatusFlags{
 	Subscribing     = (1 << 0), //!< Conectando
-	RequestedDev	= (1 << 1),	//!< solicitada subscripción a topics
-	SubscribedDev	= (1 << 5), //!< Suscrito a todos los topics
+	RequestedDev	= (1 << 1),	//!< solicitada suscripci�n al topic X
+	SubscribedDev	= (1 << 5),//!< Suscrito al topic X
 };
 
 

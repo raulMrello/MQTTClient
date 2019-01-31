@@ -44,7 +44,7 @@ class MQTTClient : public ActiveModule {
         esp_mqtt_client_config_t mqttCfg;
 
         /* Flag para comunicar estado */
-        uint32_t statusFlag;
+        Blob::MqttStatusFlags connStatus;
         bool isConnected;
 
         /* Manejador del cliente mqtt */
