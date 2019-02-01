@@ -16,7 +16,7 @@
 #define P2P_PRODUCT_TYPE			"PPL"
 #define P2P_PRODUCT_SERIAL			"XEPPL00000000"
 
-static const char *URL = "192.168.254.79";
+static const char *URL = "192.168.254.65";
 static const uint32_t PORT = 1883;
 static const char *TAG = "Test_MQTTClient";
 static const uint8_t MaxSizeOfAliasName = 22;
@@ -139,7 +139,7 @@ public:
         //  - Lista de tokens predefinida
         //  - N�mero m�ximo de caracteres para los topics: 64 caracteres incluyendo fin de cadena '\0'
         MDF_LOGI("Iniciando MQLib... ");
-        MQ::MQBroker::start(token_list, SizeOfArray(token_list), 64, P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE, true);
+        MQ::MQBroker::start(64, true);
 
         // Espera a que el broker est� operativo
         while(!MQ::MQBroker::ready()){

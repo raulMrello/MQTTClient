@@ -15,6 +15,7 @@
 
 #include "Blob.h"
 #include "mbed.h"
+#include <vector>
   
 
 namespace Blob {
@@ -44,6 +45,7 @@ struct MQTTCfgData_t{
 	char username[MaxLengthOfMqttStrings];
 	char password[MaxLengthOfMqttStrings];
 	char address[MaxLengthOfMqttStrings];
+	std::vector<char *> serverBridges;
 };
 
 

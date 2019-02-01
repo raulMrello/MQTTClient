@@ -42,6 +42,8 @@ class MQTTClient : public ActiveModule {
 
         /* Configuración de cliente mqtt */
         esp_mqtt_client_config_t mqttCfg;
+        Blob::MQTTCfgData_t mqttLocalCfg;
+
 
         /* Flag para comunicar estado */
         Blob::MqttStatusFlags connStatus;
@@ -192,9 +194,6 @@ class MQTTClient : public ActiveModule {
             Callback<void(const char*, int32_t)> *)> myPublisher;
 
         int32_t publish(const char* topic, void *data, uint32_t data_size,
-            Callback<void(const char*, int32_t)> *publisher);
-
-        int32_t meshPublish (const char* name, void *data, uint32_t datasize,
             Callback<void(const char*, int32_t)> *publisher);
 
         esp_err_t mqtt_EventHandler(esp_mqtt_event_handle_t event);

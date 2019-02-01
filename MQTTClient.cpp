@@ -50,13 +50,15 @@ void MQTTClient::init(const char* rootTopic, const char* clientId, const char* n
 
     clientHandle = NULL;
     mqttCfg = {};
+    mqttLocalCfg = {};
+    mqttLocalCfg.serverBridges.push_back("stat/0/XEPPL00000000/value/light");
     topicsSubscribed.clear();
     isConnected = false;
 
     #if defined(MQTT_LOCAL_PUBLISHER)
     myPublisher=callback(&MQ::MQClient::publish);
     #else
-    myPublisher=callback(this, &MQTTClient::meshPublish);
+    myPublisher=callback(&WifiInterface::meshPublish);
     #endif
 
     s_mqtt_EventHandle_cb = callback(this, &MQTTClient::mqtt_EventHandler);
@@ -125,17 +127,12 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
             DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_SUBSCRIBED, msgId=%d", event->msg_id);
             topicsSubscribed[event->msg_id]=true;
             ev = MqttSubscrEvt;
-            //ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-            //msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
-            //ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
             DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_UNSUBSCRIBED");
-            //ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
             break;
         case MQTT_EVENT_PUBLISHED:
             DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_PUBLISHED");
-            //ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
             break;
         case MQTT_EVENT_DATA:
         {
@@ -344,31 +341,44 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
             if(isConnected)
             {
-        		char* pubTopic = (char*)malloc(Blob::MaxLengthOfMqttStrings);
-        		MBED_ASSERT(pubTopic);
-        		parseLocalTopic(pubTopic, topicData->topic);
-        		if(strlen(pubTopic) > 0)
+                bool isBridge = false;
+                for(auto &bridge : mqttLocalCfg.serverBridges)
                 {
-                    char* relativeTopic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
-                    MBED_ASSERT(relativeTopic);
-                    if(getRelativeTopic(relativeTopic, topicData->topic))
+                    if(strcmp(bridge, topicData->topic) == 0)
+                        isBridge = true;
+                }
+                if(isBridge)
+                {
+                    char* pubTopic = (char*)malloc(Blob::MaxLengthOfMqttStrings);
+                    MBED_ASSERT(pubTopic);
+                    parseLocalTopic(pubTopic, topicData->topic);
+                    if(strlen(pubTopic) > 0)
                     {
-                        char* jsonMsg;
-                        if((jsonMsg = Blob::ParseJson(relativeTopic, topicData->data, topicData->data_len, ActiveModule::_defdbg)) != NULL)
+                        char* relativeTopic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
+                        MBED_ASSERT(relativeTopic);
+                        if(getRelativeTopic(relativeTopic, topicData->topic))
                         {
-                            int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg), 1, 0);
-                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d con contenido: %s", msg_id, jsonMsg);
+                            char* jsonMsg;
+                            if((jsonMsg = Blob::ParseJson(relativeTopic, topicData->data, topicData->data_len, ActiveModule::_defdbg)) != NULL)
+                            {
+                                int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg), 1, 0);
+                                DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d con contenido: %s", msg_id, jsonMsg);
+                            }
+                            free(jsonMsg);
                         }
-                        free(jsonMsg);
+                        else
+                            DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQTT al obtener topic relativo a enviar a MQLib");
+                        free(relativeTopic);
                     }
-                    else
-                        DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQTT al obtener topic relativo a enviar a MQLib");
-                    free(relativeTopic);
-        		}
-        		else{
-        			DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_PARSE. Al convertir el topic '%s' en topic mqtt", topicData->topic);
-        		}
-        		free(pubTopic);
+                    else{
+                        DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_PARSE. Al convertir el topic '%s' en topic mqtt", topicData->topic);
+                    }
+                    free(pubTopic);
+                }
+                else
+                {
+                    DEBUG_TRACE_I(_EXPR_, _MODULE_, "El topic %s no está añadido en la lista de bridges de MQTTClient hacia el servidor", topicData->topic);
+                }
 			}
 			else{
 				DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_FWD. No se puede enviar la publicaci�n, no hay conexi�n.");
@@ -376,6 +386,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
             free(topicData->data);
             free(topicData->topic);
+
 
         	return State::HANDLED;
         }
@@ -412,11 +423,10 @@ void MQTTClient::parseLocalTopic(char* mqtt_topic, const char* local_topic){
 	// por defecto dejo el topic como inv�lido strlen(mqtt_topic) = 0
 	mqtt_topic[0] = 0;
 
-	// realizo el parse de topics dirigidos a otros nodos (acciones set/get)
 	if (MQ::MQClient::isTokenRoot(local_topic, "stat/")){
 		sprintf(mqtt_topic, "%s/%s", rootNetworkTopic, local_topic);
 	}
-	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Conversi�n de topic local '%s' a topic mqtt '%s'", local_topic, mqtt_topic);
+	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Conversi�n de topic local mesh '%s' a topic mqtt server '%s'", local_topic, mqtt_topic);
 }
 
 bool MQTTClient::getRelativeTopic(char* relativeTopic, const char* localTopic)
@@ -510,29 +520,6 @@ int32_t MQTTClient::publish(const char* topic, void *data, uint32_t dataSize,
     return myPublisher(topic, data, dataSize, publisher);
 }
 
-int32_t MQTTClient::meshPublish (const char* topic, void *data, uint32_t dataSize,
-    Callback<void(const char*, int32_t)> *publisher)
-{
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Creando paquete de datos para enviar");
-    MeshTopicData_t* meshData = (MeshTopicData_t*)malloc(sizeof(MeshTopicData_t));
-    MBED_ASSERT(meshData);
-    meshData->data = data;
-    MBED_ASSERT(strlen(topic) <= Blob::MaxLengthOfMqttStrings);
-    strncpy(meshData->topic, topic, strlen(topic));
-    meshData->topic[strlen(topic)] = 0;
-
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Creado paquete de datos");
-
-    int ret = mwifi_write(NULL, &data_type, meshData, sizeof(meshData), true);
-
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicado paquete en la red mesh");
-
-    free(meshData);
-    
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "My local publish");
-    return ret;
-}
-
 osEvent MQTTClient::getOsEvent()
 {
     return queueSM.get();
@@ -560,7 +547,7 @@ void MQTTClient::setDefaultConfig()
 
 void MQTTClient::restoreConfig()
 {
-
+    
 }
 
 void MQTTClient::saveConfig()
