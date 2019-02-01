@@ -120,7 +120,6 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
         case MQTT_EVENT_DISCONNECTED:
             DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT_EVENT_DISCONNECTED");
             isConnected = false;
-            ev = MqttDiscEvt;
             break;
 
         case MQTT_EVENT_SUBSCRIBED:
@@ -311,7 +310,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                         }    
                         else
                         {
-                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Voy a publicar para mesh");
+                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Voy a publicar para mesh topic: %s, con %d bytes.", relativeTopic, blobSize);
                             if((err = publish(localTopic, blobData, blobSize, &_publicationCb)) != MQ::SUCCESS)
                                 DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQLIB_PUB al publicar en topic local '%s' con resultado '%d'", localTopic, err);
                         }
