@@ -451,8 +451,12 @@ bool MQTTClient::getRelativeTopic(char* relativeTopic, const char* localTopic, b
             char *id = strtok(NULL, "/");
             if(id != NULL)
             {
+                char * grpCheck = NULL;
+                long int grpInt;
+                grpInt = strtol(grp, &grpCheck, 10);
                 //Si el grupo es 0 y el id es del nodo, significa que es un mensaje propio
-                if(atoi(grp) == 0 && strcmp(id, clientId) == 0 && isOwn != NULL)
+                if(grpInt == 0 && strlen(grpCheck) == 0 &&
+                    strcmp(id, clientId) == 0 && isOwn != NULL)
                 {
                     DEBUG_TRACE_I(_EXPR_, _MODULE_, "Es propio: %s", id);
                     *isOwn = true;
