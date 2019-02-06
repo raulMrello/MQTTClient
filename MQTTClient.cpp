@@ -51,8 +51,7 @@ void MQTTClient::init(const char* rootTopic, const char* clientId, const char* n
     clientHandle = NULL;
     mqttCfg = {};
     mqttLocalCfg = {};
-    mqttLocalCfg.serverBridges.push_back("stat/0/XEPPL00000000/value/light");
-    mqttLocalCfg.serverBridges.push_back("stat/0/XEPPL00000001/value/light");
+    mqttLocalCfg.serverBridges.clear();
     topicsSubscribed.clear();
     isConnected = false;
 
@@ -351,13 +350,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
             if(isConnected)
             {
-                bool isBridge = false;
-                for(auto &bridge : mqttLocalCfg.serverBridges)
-                {
-                    if(strcmp(bridge, topicData->topic) == 0)
-                        isBridge = true;
-                }
-                if(isBridge)
+                if(checkServerBridge(topicData->topic))
                 {
                     char* pubTopic = (char*)malloc(Blob::MaxLengthOfMqttStrings);
                     MBED_ASSERT(pubTopic);
@@ -539,11 +532,66 @@ void MQTTClient::subscrToServerCb(const char* topic, void* msg, uint16_t msg_len
     }
 }
 
-
 int32_t MQTTClient::publish(const char* topic, void *data, uint32_t dataSize,
     Callback<void(const char*, int32_t)> *publisher)
 {
     return myPublisher(topic, data, dataSize, publisher);
+}
+
+void MQTTClient::addServerBridge(char* topic)
+{
+    mqttLocalCfg.serverBridges.push_back(topic);
+}
+
+void MQTTClient::removeServerBridge(char* topic)
+{
+    mqttLocalCfg.serverBridges.erase(std::remove(mqttLocalCfg.serverBridges.begin(),
+         mqttLocalCfg.serverBridges.end(), topic), mqttLocalCfg.serverBridges.end());
+
+    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Tam vector: %d", mqttLocalCfg.serverBridges.size());
+}
+
+bool MQTTClient::checkServerBridge(char* topic)
+{
+    bool isBridge = true;
+
+    char* copyBridge;
+    char* copyTopic;
+    char* subBridge;
+    char* subTopic;
+
+    for(auto &bridge : mqttLocalCfg.serverBridges)
+    {
+        copyBridge = strdup(bridge);
+        copyTopic = strdup(topic);
+        subBridge = strtok_r(copyBridge, "/", &copyBridge);
+        subTopic = strtok_r(copyTopic, "/", &copyTopic);
+        isBridge = true;
+        
+        while(subBridge != NULL && subTopic != NULL && isBridge)
+        {
+            if(strcmp(subBridge, "#") == 0)
+            {
+                subBridge = NULL;
+                subTopic = NULL;
+            }
+            else
+            {
+                if(strcmp(subBridge, subTopic) != 0 && strcmp(subBridge, "+") != 0)
+                    isBridge = false;
+                subBridge = strtok_r(copyBridge, "/", &copyBridge);
+                subTopic = strtok_r(copyTopic, "/", &copyTopic);
+            }
+        }
+
+        if(isBridge)
+            break;
+    }
+
+    free(copyBridge);
+    free(copyTopic);
+    
+    return isBridge;
 }
 
 osEvent MQTTClient::getOsEvent()

@@ -8,6 +8,7 @@
 #include "JsonParserBlob.h"
 #include <map>
 #include <mwifi.h>
+#include <algorithm>
 
 class MQTTClient : public ActiveModule {
     public:
@@ -19,6 +20,9 @@ class MQTTClient : public ActiveModule {
          */
         MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *uri, FSManager* fs, bool defdbg = false);
         MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *host, uint32_t port, FSManager* fs, bool defdbg = false);
+
+        void addServerBridge(char* topic);
+        void removeServerBridge(char* topic);
 
         virtual ~MQTTClient(){}
     
@@ -188,6 +192,8 @@ class MQTTClient : public ActiveModule {
         bool getRelativeTopic(char* relativeTopic, const char* localTopic, bool* isOwn);
 
         void subscrToServerCb(const char* topic, void* msg, uint16_t msg_len);
+
+        bool checkServerBridge(char* topic);
 
 
         Callback<int32_t(const char*, void *, uint32_t,
