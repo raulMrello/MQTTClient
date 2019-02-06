@@ -304,9 +304,9 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                     #if defined(BINARY_MESSAGES)
                         blobData = Blob::DecodeJson(relativeTopic, topicData->data, &blobSize, ActiveModule::_defdbg);
                     #else
-                        blobData = (char*)malloc(strlen(topicData->data)+1);
+                        blobData = (char*)malloc(topicData->data_len);
                         strcpy(blobData, topicData->data);
-                        blobSize = strlen(topicData->data);
+                        blobSize = topicData->data_len;
                     #endif
                     if(blobData != NULL)
                     {
