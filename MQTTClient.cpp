@@ -52,6 +52,7 @@ void MQTTClient::init(const char* rootTopic, const char* clientId, const char* n
     mqttCfg = {};
     mqttLocalCfg = {};
     mqttLocalCfg.serverBridges.push_back("stat/0/XEPPL00000000/value/light");
+    mqttLocalCfg.serverBridges.push_back("stat/0/XEPPL00000001/value/light");
     topicsSubscribed.clear();
     isConnected = false;
 
@@ -153,10 +154,11 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
             break;
         }
         case MQTT_EVENT_ERROR:
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Error");
             ev = MqttErrorEvt;
             break;
         default:
-            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Other event");
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Other event id:%d", event->event_id);
             //ESP_LOGI(TAG, "Other event id:%d", event->event_id);
             break;
     }
@@ -288,16 +290,25 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 			// lo redirecciona a MQLib si el topic es correcto
 			if(strlen(localTopic) > 0){
 				DEBUG_TRACE_I(_EXPR_, _MODULE_, "Reenviando mensaje a topic local '%s'", localTopic);
-				int err;
+				
+                int err;
 				void* blobData;
 				int blobSize;
                 
                 char* relativeTopic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
                 MBED_ASSERT(relativeTopic);
                 bool isOwnMsg = false;
+                
                 if(getRelativeTopic(relativeTopic, localTopic, &isOwnMsg))
                 {
-                    if((blobData = Blob::DecodeJson(relativeTopic, topicData->data, &blobSize, ActiveModule::_defdbg)) != NULL)
+                    #if defined(BINARY_MESSAGES)
+                        blobData = Blob::DecodeJson(relativeTopic, topicData->data, &blobSize, ActiveModule::_defdbg);
+                    #else
+                        blobData = (char*)malloc(strlen(topicData->data)+1);
+                        strcpy(blobData, topicData->data);
+                        blobSize = strlen(topicData->data);
+                    #endif
+                    if(blobData != NULL)
                     {
                         // Si el mensaje va dirigido unicamente a este nodo, se envía a MQlib sin
                         // grupo y sin ID para ser procesado a nivel local. En caso de ir dirigido
@@ -314,11 +325,11 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                             if((err = publish(localTopic, blobData, blobSize, &_publicationCb)) != MQ::SUCCESS)
                                 DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQLIB_PUB al publicar en topic local '%s' con resultado '%d'", localTopic, err);
                         }
-                        free(blobData);
                     }
                     else{
                         DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_DECODE_JSON al decodificar el objeto");
                     }
+                    free(blobData);
                 }
                 else
                     DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQTT al obtener topic relativo a enviar a MQLib");
@@ -353,6 +364,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                     parseLocalTopic(pubTopic, topicData->topic);
                     if(strlen(pubTopic) > 0)
                     {
+                        #if defined(BINARY_MESSAGES)
                         char* relativeTopic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
                         MBED_ASSERT(relativeTopic);
                         if(getRelativeTopic(relativeTopic, topicData->topic))
@@ -368,6 +380,13 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                         else
                             DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQTT al obtener topic relativo a enviar a MQLib");
                         free(relativeTopic);
+                        #else
+                        char* jsonMsg = (char*)malloc(topicData->data_len+1);
+                        strcpy(jsonMsg, topicData->data);
+                        int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, topicData->data_len, 1, 0);
+                        DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d con contenido: %s", msg_id, jsonMsg);
+                        free(jsonMsg);
+                        #endif
                     }
                     else{
                         DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_PARSE. Al convertir el topic '%s' en topic mqtt", topicData->topic);
@@ -389,6 +408,10 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
         	return State::HANDLED;
         }
+
+        case MqttErrorEvt:
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Evento de error");
+            return State::HANDLED;
 
         default:
         {
