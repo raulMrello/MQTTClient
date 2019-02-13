@@ -4,9 +4,9 @@
  *  Created on: Ene 2018
  *      Author: raulMrello
  *
- *	MQTTClient_BLOB es el componente del módulo MQTTClient en el que se definen los objetos y tipos relativos a
- *	los objetos BLOB de este módulo.
- *	Todos los tipos definidos en este componente están asociados al namespace "Blob", de forma que puedan ser
+ *	MQTTClient_BLOB es el componente del mï¿½dulo MQTTClient en el que se definen los objetos y tipos relativos a
+ *	los objetos BLOB de este mï¿½dulo.
+ *	Todos los tipos definidos en este componente estï¿½n asociados al namespace "Blob", de forma que puedan ser
  *	accesibles mediante el uso de: "Blob::"  e importando este archivo de cabecera.
  */
  
@@ -15,23 +15,24 @@
 
 #include "Blob.h"
 #include "mbed.h"
+#include <vector>
   
 
 namespace Blob {
 
 
-/** Tamaño máximo de las cadenas de texto relacionadas con parámetros del cliente mqtt */
+/** Tamaï¿½o mï¿½ximo de las cadenas de texto relacionadas con parï¿½metros del cliente mqtt */
 static const uint8_t MaxLengthOfMqttStrings = 64;
 
 /** Estados del cliente MQTT */
 enum MqttStatusFlags{
 	Subscribing     = (1 << 0), //!< Conectando
-	RequestedDev	= (1 << 1),	//!< solicitada suscripción al topic X
+	RequestedDev	= (1 << 1),	//!< solicitada suscripciï¿½n al topic X
 	SubscribedDev	= (1 << 5),//!< Suscrito al topic X
 };
 
 
-/** Estructura de datos de configuración del cliente MQTT */
+/** Estructura de datos de configuraciï¿½n del cliente MQTT */
 struct MQTTCfgData_t{
 	unsigned char flags;
 	uint8_t qos;
@@ -44,6 +45,7 @@ struct MQTTCfgData_t{
 	char username[MaxLengthOfMqttStrings];
 	char password[MaxLengthOfMqttStrings];
 	char address[MaxLengthOfMqttStrings];
+	std::vector<char *> serverBridges;
 };
 
 
