@@ -227,6 +227,8 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
         	// publica estado inicial
         	notifyConnStatUpdate();
 
+            _ready = true;
+
         	return State::HANDLED;
         }
 
