@@ -18,38 +18,55 @@
 #include <vector>
   
 
-namespace Blob {
+namespace Blob 
+{
+
+	/** Tama�o m�ximo de las cadenas de texto relacionadas con par�metros del cliente mqtt */
+	static const uint8_t MaxLengthOfMqttStrings = 64;
+
+	/** Estados del cliente MQTT */
+	enum MqttStatusFlags
+	{
+		Subscribing     = (1 << 0), //!< Conectando
+		RequestedDev	= (1 << 1),	//!< solicitada suscripci�n al topic X
+		SubscribedDev	= (1 << 5),//!< Suscrito al topic X
+	};
 
 
-/** Tama�o m�ximo de las cadenas de texto relacionadas con par�metros del cliente mqtt */
-static const uint8_t MaxLengthOfMqttStrings = 64;
+	/** Estructura de datos de configuraci�n del cliente MQTT */
+	struct MQTTCfgData_t
+	{
+		unsigned char flags;
+		uint8_t qos;
+		uint16_t keep_alive;
+		uint16_t group;
+		uint16_t group_mask;
+		uint32_t pollTimeout;
+		char will_topic[MaxLengthOfMqttStrings];
+		char will_message[MaxLengthOfMqttStrings];
+		char username[MaxLengthOfMqttStrings];
+		char password[MaxLengthOfMqttStrings];
+		char address[MaxLengthOfMqttStrings];
+		std::vector<char *> serverBridges;
+	};
+}
 
-/** Estados del cliente MQTT */
-enum MqttStatusFlags{
-	Subscribing     = (1 << 0), //!< Conectando
-	RequestedDev	= (1 << 1),	//!< solicitada suscripci�n al topic X
-	SubscribedDev	= (1 << 5),//!< Suscrito al topic X
-};
+namespace JSON 
+{
+	/**
+	 * Codifica el estado actual en un objeto JSON
+	 * @param stat Estado
+	 * @return Objeto JSON o NULL en caso de error
+	 */
+	cJSON* getJsonFromMQTTCliStat(const Blob::MqttStatusFlags& stat);
 
-
-/** Estructura de datos de configuraci�n del cliente MQTT */
-struct MQTTCfgData_t{
-	unsigned char flags;
-	uint8_t qos;
-	uint16_t keep_alive;
-	uint16_t group;
-	uint16_t group_mask;
-	uint32_t pollTimeout;
-	char will_topic[MaxLengthOfMqttStrings];
-	char will_message[MaxLengthOfMqttStrings];
-	char username[MaxLengthOfMqttStrings];
-	char password[MaxLengthOfMqttStrings];
-	char address[MaxLengthOfMqttStrings];
-	std::vector<char *> serverBridges;
-};
-
-
-
+	/**
+	 * Decodifica el mensaje JSON en un objeto de estado
+	 * @param obj Recibe el objeto decodificado
+	 * @param json Objeto JSON a decodificar
+	 * @return keys Par�metros decodificados o 0 en caso de error
+	 */
+	uint32_t getMQTTCliStatFromJson(Blob::MqttStatusFlags &obj, cJSON* json);
 }
 
 #endif
