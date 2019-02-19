@@ -408,12 +408,18 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
 void MQTTClient::notifyConnStatUpdate()
 {
-	DEBUG_TRACE_D(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%d", connStatus);
-    char* pub_topic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
-	MBED_ASSERT(pub_topic);
-	sprintf(pub_topic, "stat/conn/%s", _pub_topic_base);
-	MQ::MQClient::publish(pub_topic, &connStatus, sizeof(Blob::MqttStatusFlags), &_publicationCb);
-	free(pub_topic);
+    cJSON* jStat = JsonParser::getJsonFromObj(connStatus);
+    if(jStat){
+        char* jmsg = cJSON_Print(jStat);
+        cJSON_Delete(jStat);
+        DEBUG_TRACE_D(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%s", jmsg);
+        char* pub_topic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
+        MBED_ASSERT(pub_topic);
+        sprintf(pub_topic, "stat/conn/%s", _pub_topic_base);
+        MQ::MQClient::publish(pub_topic, jmsg, strlen(jmsg)+1, &_publicationCb);
+        free(jmsg);
+        free(pub_topic);
+    }
 }
 
 void MQTTClient::parseMqttTopic(char* localTopic, const char* mqttTopic)
