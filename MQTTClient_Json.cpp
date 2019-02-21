@@ -29,13 +29,12 @@ namespace JSON
 
     uint32_t getMQTTCliStatFromJson(Blob::MqttStatusFlags &stat, cJSON* json){
         cJSON *obj = NULL;
-        uint32_t keys = 0;
         DEBUG_TRACE_I(_EXPR_, _MODULE_, "Decodificando MQTTCliStatData de un objeto Json");
         if((obj = cJSON_GetObjectItem(json, JsonParser::p_flags)) == NULL){
             DEBUG_TRACE_E(_EXPR_, _MODULE_, "flags no existe");
             return 0;
         }
         stat = obj->valueint;
-        return keys;
+        return 1;
     }
 }
