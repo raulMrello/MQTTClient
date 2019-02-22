@@ -24,6 +24,11 @@ class MQTTClient : public ActiveModule {
         void addServerBridge(char* topic);
         void removeServerBridge(char* topic);
 
+        /** Notifica localmente un cambio de estado
+         *
+         */
+        void notifyConnStatUpdate();
+
         virtual ~MQTTClient(){}
     
     private:
@@ -178,11 +183,6 @@ class MQTTClient : public ActiveModule {
         /** Graba la configuraci�n en memoria NV
          */
         virtual void saveConfig();
-
-        /** Notifica localmente un cambio de estado
-         *
-         */
-        void notifyConnStatUpdate();
 
         void parseMqttTopic(char* local_topic, const char* mqtt_topic);
 
