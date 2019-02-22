@@ -408,7 +408,9 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
 void MQTTClient::notifyConnStatUpdate()
 {
-    cJSON* jStat = JsonParser::getJsonFromObj(connStatus);
+	Blob::NotificationData_t<Blob::MqttStatusFlags> *notif = new Blob::NotificationData_t<Blob::MqttStatusFlags>(connStatus);
+	MBED_ASSERT(notif);
+    cJSON* jStat = JsonParser::getJsonFromNotification(*notif);
     if(jStat){
         char* jmsg = cJSON_Print(jStat);
         cJSON_Delete(jStat);
@@ -420,6 +422,7 @@ void MQTTClient::notifyConnStatUpdate()
         free(jmsg);
         free(pub_topic);
     }
+    delete(notif);
 }
 
 void MQTTClient::parseMqttTopic(char* localTopic, const char* mqttTopic)
