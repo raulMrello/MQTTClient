@@ -23,6 +23,7 @@ namespace Blob
 
 	/** Tamaï¿½o mï¿½ximo de las cadenas de texto relacionadas con parï¿½metros del cliente mqtt */
 	static const uint8_t MaxLengthOfMqttStrings = 64;
+	static const uint8_t MaxLengthOfLoginStrings = 16;
 
 	/** Estados del cliente MQTT */
 	enum MqttStatusFlags
@@ -32,33 +33,62 @@ namespace Blob
 		SubscribedDev	= (1 << 5),//!< Suscrito al topic X
 	};
 
+	/** Flags para la configuración de notificaciones cuando su configuración se ha modificado. */
+	enum MqttUpdFlags{
+		EnableMqttCfgUpdNotif 	= (1 << 0),  	/// Flag activado para notificar cambios en la configuración en bloque del objeto
+	};
+
+
+	/** Flags para identificar cada key-value de los objetos JSON que se han modificado en un SET remoto */
+	enum MqttKeyNames{
+		MqttKeyNone 		= 0,
+		MqttKeyCfgUpd		= (1 << 0),
+		MqttKeyCfgGrpMsk	= (1 << 1),
+		MqttKeyCfgKeepAlive	= (1 << 2),
+		MqttKeyCfgQos		= (1 << 3),
+		MqttKeyCfgUsername	= (1 << 4),
+		MqttKeyCfgPasswd	= (1 << 5),
+		MqttKeyCfgVerbosity	= (1 << 6),
+		//
+		MqttKeyCfgAll     = 0x7f,
+	};
 
 	/** Estructura de datos de configuraciï¿½n del cliente MQTT */
 	struct MQTTCfgData_t
 	{
-		unsigned char flags;
-		uint8_t qos;
-		uint16_t keep_alive;
-		uint16_t group;
-		uint16_t group_mask;
-		uint32_t pollTimeout;
-		char will_topic[MaxLengthOfMqttStrings];
-		char will_message[MaxLengthOfMqttStrings];
-		char username[MaxLengthOfMqttStrings];
-		char password[MaxLengthOfMqttStrings];
-		char address[MaxLengthOfMqttStrings];
-		std::vector<char *> serverBridges;
+		MqttUpdFlags updFlagMask;
+		uint16_t keepAlive;
+		uint32_t groupMask;
+		int qos;
+		char username[MaxLengthOfLoginStrings];
+		char passwd[MaxLengthOfLoginStrings];
+		esp_log_level_t verbosity;	//!< Nivel de verbosity para las trazas de depuración
 	};
 }
 
 namespace JSON 
 {
 	/**
+	 * Codifica la configuración actual en un objeto JSON
+	 * @param cfg Configuración
+	 * @return Objeto JSON o NULL en caso de error
+	 */
+	cJSON* getJsonFromMQTTCliCfg(const Blob::MQTTCfgData_t& cfg);
+
+	/**
 	 * Codifica el estado actual en un objeto JSON
 	 * @param stat Estado
 	 * @return Objeto JSON o NULL en caso de error
 	 */
 	cJSON* getJsonFromMQTTCliStat(const Blob::MqttStatusFlags& stat);
+
+	/**
+	 * Decodifica el mensaje JSON en un objeto de configuración
+	 * @param obj Recibe el objeto decodificado
+	 * @param json Objeto JSON a decodificar
+	 * @return keys Parï¿½metros decodificados o 0 en caso de error
+	 */
+	uint32_t getMQTTCliCfgFromJson(Blob::MQTTCfgData_t &obj, cJSON* json);
 
 	/**
 	 * Decodifica el mensaje JSON en un objeto de estado
