@@ -9,6 +9,12 @@
 #include <map>
 #include <mwifi.h>
 #include <algorithm>
+/** Flag para habilitar el soporte de objetos JSON en las suscripciones a MQLib
+ *  Por defecto DESACTIVADO
+ */
+#define MQTT_ENABLE_JSON_SUPPORT		0
+
+
 
 class MQTTClient : public ActiveModule {
     public:
@@ -30,6 +36,24 @@ class MQTTClient : public ActiveModule {
         void notifyConnStatUpdate();
 
         virtual ~MQTTClient(){}
+
+
+        /**
+         * Activa y/o desactiva el soporte JSON
+         * @param flag
+         */
+        void setJSONSupport(bool flag){
+        	_json_supported = flag;
+        }
+
+
+        /**
+         * Obtiene el estado del soporte JSON
+         * @return
+         */
+        bool isJSONSupported(){
+        	return _json_supported;
+        }
     
     private:
         /** Mï¿½ximo nï¿½mero de mensajes alojables en la cola asociada a la mï¿½quina de estados */
@@ -52,7 +76,10 @@ class MQTTClient : public ActiveModule {
         /* ConfiguraciÃ³n de cliente mqtt */
         esp_mqtt_client_config_t mqttCfg;
         Blob::MQTTCfgData_t mqttLocalCfg;
+        std::vector<char *> _serverBridges;
 
+        /** Flag de control para el soporte de objetos json */
+        bool _json_supported;
 
         /* Flag para comunicar estado */
         Blob::MqttStatusFlags connStatus;
@@ -84,8 +111,9 @@ class MQTTClient : public ActiveModule {
             MqttUnHndEvt	= (State::EV_RESERVED_USER << 16),
             MqttDataEvt 	= (State::EV_RESERVED_USER << 17),
             MqttPublishToServer = (State::EV_RESERVED_USER << 18),	/// <--- Fin flags MQTT
-            RecvCfgSet		= (State::EV_RESERVED_USER << 19),	/// Flag al cambiar la configuraciï¿½n del dispositivo 'cmd/mqtt/cfg/set'
+            RecvCfgSet		= (State::EV_RESERVED_USER << 19),	/// Flag al cambiar la configuraciï¿½n del dispositivo 'set/cfg/mqtt'
             FwdMsgLocalEvt	= (State::EV_RESERVED_USER << 20),	/// Flag al solicitar un reenvï¿½o hacia el broker mqtt
+			RecvCfgGet		= (State::EV_RESERVED_USER << 21),	/// Flag al solicitar la configuraciï¿½n del dispositivo 'get/cfg/mqtt'
             //-------------
             UNKNOWN_EVENT	= (State::EV_RESERVED_USER << 31),	/// Flag desconocido
         };
@@ -183,6 +211,17 @@ class MQTTClient : public ActiveModule {
         /** Graba la configuraciï¿½n en memoria NV
          */
         virtual void saveConfig();
+
+
+    	/** Actualiza la configuración
+    	 *
+    	 * @param cfg Nueva configuración a aplicar
+    	 * @param keys Flags de parámetros actualizados
+    	 * @param err Recibe los errores generados durante la actualización
+    	 */
+    	void _updateConfig(const Blob::MQTTCfgData_t& cfg, uint32_t keys, Blob::ErrorData_t& err);
+
+
 
         void parseMqttTopic(char* local_topic, const char* mqtt_topic);
 
