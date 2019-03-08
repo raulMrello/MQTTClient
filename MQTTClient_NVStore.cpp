@@ -26,6 +26,7 @@ void MQTTClient::setDefaultConfig(){
 	mqttLocalCfg.qos = 0;
 	strncpy(mqttLocalCfg.username, (const char*)"", Blob::MaxLengthOfLoginStrings);
 	strncpy(mqttLocalCfg.passwd, (const char*)"", Blob::MaxLengthOfLoginStrings);
+	mqttLocalCfg.verbosity = ESP_LOG_VERBOSE;
 	saveConfig();
 }
 
@@ -70,13 +71,13 @@ void MQTTClient::restoreConfig(){
 	}
 
 	if(success){
-		// chequea el checksum crc32 y después la integridad de los datos
+		// chequea el checksum crc32 y despuï¿½s la integridad de los datos
 		DEBUG_TRACE_I(_EXPR_, _MODULE_, "Datos recuperados. Chequeando integridad...");
 		if(Blob::getCRC32(&mqttLocalCfg, sizeof(Blob::MQTTCfgData_t)) != crc){
 			DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_CFG. Ha fallado el checksum");
 		}
     	else if(!checkIntegrity()){
-    		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_CFG. Ha fallado el check de integridad. Establece configuración por defecto.");
+    		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_CFG. Ha fallado el check de integridad. Establece configuraciï¿½n por defecto.");
     	}
     	else{
     		DEBUG_TRACE_D(_EXPR_, _MODULE_, "Check de integridad OK, activando verbose mode=%d", mqttLocalCfg.verbosity);
@@ -87,7 +88,7 @@ void MQTTClient::restoreConfig(){
     	}
 	}
 	else{
-		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_FS. Error en la recuperación de datos. Establece configuración por defecto");
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_FS. Error en la recuperaciï¿½n de datos. Establece configuraciï¿½n por defecto");
 		setDefaultConfig();
 	}
 }

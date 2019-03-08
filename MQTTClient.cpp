@@ -244,7 +244,7 @@ void MQTTClient::notifyConnStatUpdate()
 			char* jmsg = cJSON_Print(jStat);
 			MBED_ASSERT(jmsg);
 			cJSON_Delete(jStat);
-			DEBUG_TRACE_D(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%s", jmsg);
+			DEBUG_TRACE_I(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%s", jmsg);
 			MQ::MQClient::publish(pub_topic, jmsg, strlen(jmsg)+1, &_publicationCb);
 			free(jmsg);
     	}
