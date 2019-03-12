@@ -414,3 +414,10 @@ osEvent MQTTClient::getOsEvent()
 }
 
 
+void MQTTClient::stop(){
+    esp_mqtt_client_stop(clientHandle);
+}
+
+void MQTTClient::start(){
+    esp_mqtt_client_start(clientHandle);
+}

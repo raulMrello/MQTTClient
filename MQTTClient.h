@@ -30,6 +30,9 @@ class MQTTClient : public ActiveModule {
         void addServerBridge(char* topic);
         void removeServerBridge(char* topic);
 
+        void start();
+        void stop();
+
         /** Notifica localmente un cambio de estado
          *
          */
@@ -213,11 +216,11 @@ class MQTTClient : public ActiveModule {
         virtual void saveConfig();
 
 
-    	/** Actualiza la configuración
+    	/** Actualiza la configuraciï¿½n
     	 *
-    	 * @param cfg Nueva configuración a aplicar
-    	 * @param keys Flags de parámetros actualizados
-    	 * @param err Recibe los errores generados durante la actualización
+    	 * @param cfg Nueva configuraciï¿½n a aplicar
+    	 * @param keys Flags de parï¿½metros actualizados
+    	 * @param err Recibe los errores generados durante la actualizaciï¿½n
     	 */
     	void _updateConfig(const Blob::MQTTCfgData_t& cfg, uint32_t keys, Blob::ErrorData_t& err);
 
