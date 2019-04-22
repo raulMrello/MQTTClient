@@ -24,8 +24,8 @@ class MQTTClient : public ActiveModule {
          * 	@param fs Objeto FSManager para operaciones de backup
          * 	@param defdbg Flag para habilitar depuración por defecto
          */
-        MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *uri, FSManager* fs, bool defdbg = false);
-        MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *host, uint32_t port, FSManager* fs, bool defdbg = false);
+        MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *uri, const char *user, const char *pass, FSManager* fs, bool defdbg = false);
+        MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *host, uint32_t port, const char *user, const char *pass, FSManager* fs, bool defdbg = false);
 
         void addServerBridge(char* topic);
         void removeServerBridge(char* topic);
@@ -161,8 +161,8 @@ class MQTTClient : public ActiveModule {
         void init(const char*, const char*, const char*);
 
         //Establece los valores de configuración para conectar con el servidor MQTT
-        void setConfigMQTTServer(const char*);
-        void setConfigMQTTServer(const char*, uint32_t);
+        void setConfigMQTTServer(const char*, const char*, const char*);
+        void setConfigMQTTServer(const char*, uint32_t, const char*, const char*);
 
         /** Callback invocada al recibir una actualización de un topic local al que está suscrito
          *  @param topic Identificador del topic
