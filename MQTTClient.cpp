@@ -22,7 +22,8 @@ static esp_err_t mqtt_EventHandler_cb(esp_mqtt_event_handle_t event)
 
 //------------------------------------------------------------------------------------
 MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
-            const char *uri, FSManager* fs, bool defdbg) : 
+            const char *uri, const char *user, const char *pass,
+            FSManager* fs, bool defdbg) : 
             ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
 {
 
@@ -41,13 +42,14 @@ MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* 
 
 
     init(rootTopic, clientId, networkId);
-    setConfigMQTTServer(uri);
+    setConfigMQTTServer(uri, user, pass);
 }
 
 
 //------------------------------------------------------------------------------------
 MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
-            const char *host, uint32_t port, FSManager* fs, bool defdbg) : 
+            const char *host, uint32_t port, const char *user, const char *pass,
+            FSManager* fs, bool defdbg) : 
             ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
 {
 
@@ -70,7 +72,7 @@ MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* 
 
 
     init(rootTopic, clientId, networkId);
-    setConfigMQTTServer(host, port);
+    setConfigMQTTServer(host, port, user, pass);
 }
 
 
@@ -109,18 +111,22 @@ void MQTTClient::init(const char* rootTopic, const char* clientId, const char* n
 
 
 //------------------------------------------------------------------------------------
-void MQTTClient::setConfigMQTTServer(const char *uri)
+void MQTTClient::setConfigMQTTServer(const char *uri, const char *user, const char *pass)
 {
     mqttCfg.uri = uri;
+    mqttCfg.username = user;
+    mqttCfg.password = pass;
     mqttCfg.event_handle = mqtt_EventHandler_cb;
 }
 
 
 //------------------------------------------------------------------------------------
-void MQTTClient::setConfigMQTTServer(const char *host, uint32_t port)
+void MQTTClient::setConfigMQTTServer(const char *host, uint32_t port, const char *user, const char *pass)
 {
     mqttCfg.host = host;
     mqttCfg.port = port;
+    mqttCfg.username = user;
+    mqttCfg.password = pass;
     mqttCfg.event_handle = mqtt_EventHandler_cb;
 }
 
