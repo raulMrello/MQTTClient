@@ -247,7 +247,7 @@ void MQTTClient::notifyConnStatUpdate()
 		MBED_ASSERT(pub_topic);
 		sprintf(pub_topic, "stat/conn/%s", _pub_topic_base);
     	if(_json_supported){
-			char* jmsg = cJSON_Print(jStat);
+			char* jmsg = cJSON_PrintUnformatted(jStat);
 			MBED_ASSERT(jmsg);
 			cJSON_Delete(jStat);
 			DEBUG_TRACE_I(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%s", jmsg);

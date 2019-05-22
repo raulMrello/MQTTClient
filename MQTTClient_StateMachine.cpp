@@ -12,7 +12,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
     {
         case State::EV_ENTRY:
         {
-        	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Iniciando recuperación de datos...");
+        	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Iniciando recuperaciï¿½n de datos...");
 
         	// recupera los datos de memoria NV
         	restoreConfig();
@@ -228,15 +228,15 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
         case MqttErrorEvt:
             return State::HANDLED;
 
-		// Procesa datos recibidos de la publicación en cmd/$BASE/cfg/set
+		// Procesa datos recibidos de la publicaciï¿½n en cmd/$BASE/cfg/set
 		case RecvCfgSet:{
 			Blob::SetRequest_t<Blob::MQTTCfgData_t>* req = (Blob::SetRequest_t<Blob::MQTTCfgData_t>*)st_msg->msg;
-			DEBUG_TRACE_I(_EXPR_, _MODULE_, "Recibida nueva configuración keys=%x", req->keys);
-			// si no hay errores, actualiza la configuración
+			DEBUG_TRACE_I(_EXPR_, _MODULE_, "Recibida nueva configuraciï¿½n keys=%x", req->keys);
+			// si no hay errores, actualiza la configuraciï¿½n
 			if(req->_error.code == Blob::ErrOK){
 				_updateConfig(req->data, req->keys, req->_error);
 			}
-			// si hay errores en el mensaje o en la actualización, devuelve resultado sin hacer nada
+			// si hay errores en el mensaje o en la actualizaciï¿½n, devuelve resultado sin hacer nada
 			if(req->_error.code != Blob::ErrOK){
 				DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_UPD al actualizar code=%d", req->_error.code);
 				char* pub_topic = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
@@ -248,7 +248,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 				if(_json_supported){
 					cJSON* jresp = JsonParser::getJsonFromResponse(*resp);
 					if(jresp){
-						char* jmsg = cJSON_Print(jresp);
+						char* jmsg = cJSON_PrintUnformatted(jresp);
 						cJSON_Delete(jresp);
 						MQ::MQClient::publish(pub_topic, jmsg, strlen(jmsg)+1, &_publicationCb);
 						Heap::memFree(jmsg);
@@ -257,18 +257,19 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 						return State::HANDLED;
 					}
 				}
-
-				MQ::MQClient::publish(pub_topic, resp, sizeof(Blob::Response_t<Blob::MQTTCfgData_t>), &_publicationCb);
-				delete(resp);
-				Heap::memFree(pub_topic);
-				return State::HANDLED;
+                else{
+                    MQ::MQClient::publish(pub_topic, resp, sizeof(Blob::Response_t<Blob::MQTTCfgData_t>), &_publicationCb);
+                    delete(resp);
+                    Heap::memFree(pub_topic);
+                    return State::HANDLED;
+                }
 			}
 
 			// almacena en el sistema de ficheros
 			saveConfig();
 			DEBUG_TRACE_I(_EXPR_, _MODULE_, "Config actualizada");
 
-			// si está habilitada la notificación de actualización, lo notifica
+			// si estï¿½ habilitada la notificaciï¿½n de actualizaciï¿½n, lo notifica
 			if((mqttLocalCfg.updFlagMask & Blob::EnableMqttCfgUpdNotif) != 0){
 				char* pub_topic = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
 				MBED_ASSERT(pub_topic);
@@ -279,7 +280,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 				if(_json_supported){
 					cJSON* jresp = JsonParser::getJsonFromResponse(*resp);
 					if(jresp){
-						char* jmsg = cJSON_Print(jresp);
+						char* jmsg = cJSON_PrintUnformatted(jresp);
 						cJSON_Delete(jresp);
 						MQ::MQClient::publish(pub_topic, jmsg, strlen(jmsg)+1, &_publicationCb);
 						Heap::memFree(jmsg);
@@ -288,16 +289,17 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 						return State::HANDLED;
 					}
 				}
-
-				MQ::MQClient::publish(pub_topic, resp, sizeof(Blob::Response_t<Blob::MQTTCfgData_t>), &_publicationCb);
-				delete(resp);
-				Heap::memFree(pub_topic);
+                else{
+                    MQ::MQClient::publish(pub_topic, resp, sizeof(Blob::Response_t<Blob::MQTTCfgData_t>), &_publicationCb);
+                    delete(resp);
+                    Heap::memFree(pub_topic);
+                }
 			}
 
 			return State::HANDLED;
 		}
 
-		// Procesa datos recibidos de la publicación en cmd/$BASE/cfg/get
+		// Procesa datos recibidos de la publicaciï¿½n en cmd/$BASE/cfg/get
 		case RecvCfgGet:{
 			Blob::GetRequest_t* req = (Blob::GetRequest_t*)st_msg->msg;
 			// prepara el topic al que responder
@@ -305,13 +307,13 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 			MBED_ASSERT(pub_topic);
 			sprintf(pub_topic, "stat/cfg/%s", _pub_topic_base);
 
-			// responde con los datos solicitados y con los errores (si hubiera) de la decodificación de la solicitud
+			// responde con los datos solicitados y con los errores (si hubiera) de la decodificaciï¿½n de la solicitud
 			Blob::Response_t<Blob::MQTTCfgData_t>* resp = new Blob::Response_t<Blob::MQTTCfgData_t>(req->idTrans, req->_error, mqttLocalCfg);
 
 			if(_json_supported){
 				cJSON* jresp = JsonParser::getJsonFromResponse(*resp);
 				if(jresp){
-					char* jmsg = cJSON_Print(jresp);
+					char* jmsg = cJSON_PrintUnformatted(jresp);
 					cJSON_Delete(jresp);
 					MQ::MQClient::publish(pub_topic, jmsg, strlen(jmsg)+1, &_publicationCb);
 					Heap::memFree(jmsg);
@@ -320,15 +322,16 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 					return State::HANDLED;
 				}
 			}
+            else{
+                MQ::MQClient::publish(pub_topic, resp, sizeof(Blob::Response_t<Blob::MQTTCfgData_t>), &_publicationCb);
+                delete(resp);
 
-			MQ::MQClient::publish(pub_topic, resp, sizeof(Blob::Response_t<Blob::MQTTCfgData_t>), &_publicationCb);
-			delete(resp);
+                // libera la memoria asignada al topic de publicaciï¿½n
+                Heap::memFree(pub_topic);
 
-			// libera la memoria asignada al topic de publicación
-			Heap::memFree(pub_topic);
-
-			DEBUG_TRACE_I(_EXPR_, _MODULE_, "Enviada respuesta con la configuración solicitada");
-			return State::HANDLED;
+                DEBUG_TRACE_I(_EXPR_, _MODULE_, "Enviada respuesta con la configuraciï¿½n solicitada");
+                return State::HANDLED;
+            }
 		}
 
         default:
