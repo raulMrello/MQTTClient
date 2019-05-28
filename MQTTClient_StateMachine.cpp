@@ -197,11 +197,17 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                             DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQTT al obtener topic relativo a enviar a MQLib");
                         free(relativeTopic);
                         #else
-                        char* jsonMsg = (char*)malloc(topicData->data_len+1);
-                        strcpy(jsonMsg, topicData->data);
-                        int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, topicData->data_len, 1, 0);
-                        DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d con contenido: %s", msg_id, jsonMsg);
-                        free(jsonMsg);
+                        if(_json_supported){
+                            char* jsonMsg = cJSON_PrintUnformatted(*(cJSON**)topicData->data);
+                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje con contenido: %s", jsonMsg);
+                            int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg)+1, 1, 0);
+                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d con contenido: %s", msg_id, jsonMsg);
+                            free(jsonMsg);
+                        }
+                        else{
+                            int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, topicData->data, topicData->data_len, 1, 0);
+                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d", msg_id);
+                        }
                         #endif
                     }
                     else{
