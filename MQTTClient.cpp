@@ -24,7 +24,7 @@ static esp_err_t mqtt_EventHandler_cb(esp_mqtt_event_handle_t event)
 MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
             const char *uri, const char *user, const char *pass,
             FSManager* fs, bool defdbg) : 
-            ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
+            ActiveModule("MqttCli", osPriorityNormal, 3072, fs, defdbg) 
 {
 
 	// Establece el soporte de JSON
@@ -50,7 +50,7 @@ MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* 
 MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
             const char *host, uint32_t port, const char *user, const char *pass,
             FSManager* fs, bool defdbg) : 
-            ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
+            ActiveModule("MqttCli", osPriorityNormal, 3072, fs, defdbg) 
 {
 
 	// Establece el soporte de JSON
@@ -241,24 +241,23 @@ void MQTTClient::notifyConnStatUpdate()
 {
 	Blob::NotificationData_t<Blob::MqttStatusFlags> *notif = new Blob::NotificationData_t<Blob::MqttStatusFlags>(connStatus);
 	MBED_ASSERT(notif);
-    cJSON* jStat = JsonParser::getJsonFromNotification(*notif);
-    if(jStat){
-    	char* pub_topic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
-		MBED_ASSERT(pub_topic);
-		sprintf(pub_topic, "stat/conn/%s", _pub_topic_base);
-    	if(_json_supported){
-			char* jmsg = cJSON_PrintUnformatted(jStat);
-			MBED_ASSERT(jmsg);
-			cJSON_Delete(jStat);
-			DEBUG_TRACE_I(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%s", jmsg);
-			MQ::MQClient::publish(pub_topic, jmsg, strlen(jmsg)+1, &_publicationCb);
-			free(jmsg);
-    	}
-    	else{
-    		MQ::MQClient::publish(pub_topic, notif, sizeof(Blob::NotificationData_t<Blob::MqttStatusFlags>), &_publicationCb);
-    	}
-    	free(pub_topic);
+    
+    char* pub_topic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
+    MBED_ASSERT(pub_topic);
+    sprintf(pub_topic, "stat/conn/%s", _pub_topic_base);
+    if(_json_supported){
+        cJSON* jStat = JsonParser::getJsonFromNotification(*notif);
+        MBED_ASSERT(jStat);
+        
+        //DEBUG_TRACE_I(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%s", jmsg);
+        MQ::MQClient::publish(pub_topic, &jStat, sizeof(cJSON**), &_publicationCb);
+        cJSON_Delete(jStat);
     }
+    else{
+        MQ::MQClient::publish(pub_topic, notif, sizeof(Blob::NotificationData_t<Blob::MqttStatusFlags>), &_publicationCb);
+    }
+    free(pub_topic);
+    
     delete(notif);
 }
 
@@ -349,7 +348,15 @@ bool MQTTClient::getRelativeTopic(char* relativeTopic, const char* localTopic, b
 int32_t MQTTClient::publish(const char* topic, void *data, uint32_t dataSize,
     Callback<void(const char*, int32_t)> *publisher)
 {
-    return myPublisher(topic, data, dataSize, publisher);
+    if(_json_supported)
+    {
+        cJSON* json = cJSON_Parse(data);
+        int32_t res = myPublisher(topic, &json, sizeof(cJSON**), publisher);
+        cJSON_Delete(json);
+        return res;
+    }
+    else
+        return myPublisher(topic, data, dataSize, publisher);
 }
 
 
