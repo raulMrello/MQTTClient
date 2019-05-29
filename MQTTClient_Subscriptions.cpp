@@ -12,15 +12,15 @@ static const char* _MODULE_ = "[MqttCli].......";
 void MQTTClient::subscrToServerCb(const char* topic, void* msg, uint16_t msg_len)
 {
     // crea el mensaje para publicar en la m�quina de estados
-	State::Msg* op = (State::Msg*)malloc(sizeof(State::Msg));
+	State::Msg* op = (State::Msg*)Heap::memAlloc(sizeof(State::Msg));
 	MBED_ASSERT(op);
     
-    Blob::BaseMsg_t * mq_msg = (Blob::BaseMsg_t *)malloc(sizeof(Blob::BaseMsg_t));
+    Blob::BaseMsg_t * mq_msg = (Blob::BaseMsg_t *)Heap::memAlloc(sizeof(Blob::BaseMsg_t));
 	MBED_ASSERT(mq_msg);
-	mq_msg->topic = (char*)malloc(strlen(topic)+1);
+	mq_msg->topic = (char*)Heap::memAlloc(strlen(topic)+1);
 	MBED_ASSERT(mq_msg->topic);
 	strcpy(mq_msg->topic, topic);
-	mq_msg->data = (char*)malloc(msg_len);
+	mq_msg->data = (char*)Heap::memAlloc(msg_len);
 	MBED_ASSERT(mq_msg->data);
 	memcpy(mq_msg->data, msg, msg_len);
 	mq_msg->topic_len = strlen(topic)+1;
@@ -32,11 +32,11 @@ void MQTTClient::subscrToServerCb(const char* topic, void* msg, uint16_t msg_len
     // postea en la cola de la m�quina de estados
     if(putMessage(op) != osOK)
     {
-        free(mq_msg->topic);
-    	free(mq_msg->data);
+        Heap::memFree(mq_msg->topic);
+    	Heap::memFree(mq_msg->data);
     	if(op->msg)
-    		free(op->msg);
-    	free(op);
+    		Heap::memFree(op->msg);
+    	Heap::memFree(op);
     }
 }
 

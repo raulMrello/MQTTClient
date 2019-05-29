@@ -152,10 +152,10 @@ void MQTTClient::publicationCb(const char* topic, int32_t result)
 esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
 {
     // crea el mensaje para publicar en la m�quina de estados
-    State::Msg* op = (State::Msg*)malloc(sizeof(State::Msg));
+    State::Msg* op = (State::Msg*)Heap::memAlloc(sizeof(State::Msg));
     MBED_ASSERT(op);
     // el mensaje a publicar es un blob tipo MqttEvtMsg_t
-	MqttEvtMsg_t* mdata = (MqttEvtMsg_t*)malloc(sizeof(MqttEvtMsg_t));
+	MqttEvtMsg_t* mdata = (MqttEvtMsg_t*)Heap::memAlloc(sizeof(MqttEvtMsg_t));
     MBED_ASSERT(mdata);
     mdata->data = NULL;
     int ev = MqttErrorEvt;
@@ -193,10 +193,10 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
             printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
             printf("DATA=%.*s\r\n", event->data_len, event->data);
             ev = MqttDataEvt;
-            MqttTopicData_t* mqttData = (MqttTopicData_t*)malloc(sizeof(MqttTopicData_t));
+            MqttTopicData_t* mqttData = (MqttTopicData_t*)Heap::memAlloc(sizeof(MqttTopicData_t));
             MBED_ASSERT(mqttData);
             mqttData->data_len = event->data_len + 1;
-            mqttData->data = (char*)malloc(mqttData->data_len);
+            mqttData->data = (char*)Heap::memAlloc(mqttData->data_len);
 	    	MBED_ASSERT(mqttData->data);
 	    	memcpy(mqttData->data, event->data, event->data_len);
 	    	mqttData->data[event->data_len] = 0;
@@ -224,13 +224,13 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
     if(putMessage(op) != osOK){
         if(ev == MqttDataEvt){
     		MqttTopicData_t* topicdata = (MqttTopicData_t*)mdata->data;
-    		free(topicdata->data);
-    		free(topicdata);
+    		Heap::memFree(topicdata->data);
+    		Heap::memFree(topicdata);
     	}
     	if(op->msg){
-    		free(op->msg);
+    		Heap::memFree(op->msg);
     	}
-    	free(op);
+    	Heap::memFree(op);
     }
     return ESP_OK;
 }
@@ -242,7 +242,7 @@ void MQTTClient::notifyConnStatUpdate()
 	Blob::NotificationData_t<Blob::MqttStatusFlags> *notif = new Blob::NotificationData_t<Blob::MqttStatusFlags>(connStatus);
 	MBED_ASSERT(notif);
     
-    char* pub_topic = (char*)malloc(MQ::MQClient::getMaxTopicLen());
+    char* pub_topic = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
     MBED_ASSERT(pub_topic);
     sprintf(pub_topic, "stat/conn/%s", _pub_topic_base);
     if(_json_supported){
@@ -256,7 +256,7 @@ void MQTTClient::notifyConnStatUpdate()
     else{
         MQ::MQClient::publish(pub_topic, notif, sizeof(Blob::NotificationData_t<Blob::MqttStatusFlags>), &_publicationCb);
     }
-    free(pub_topic);
+    Heap::memFree(pub_topic);
     
     delete(notif);
 }
@@ -298,7 +298,7 @@ bool MQTTClient::getRelativeTopic(char* relativeTopic, const char* localTopic)
 bool MQTTClient::getRelativeTopic(char* relativeTopic, const char* localTopic, bool* isOwn)
 {
     //Quitamos los parametros de grup y device (el segundo y el tercero)
-    char* topic = (char*)malloc(strlen(localTopic)+1);
+    char* topic = (char*)Heap::memAlloc(strlen(localTopic)+1);
     strcpy(topic, localTopic);
     char *command = strtok(topic, "/");
     bool isCorrect = true;
@@ -338,7 +338,7 @@ bool MQTTClient::getRelativeTopic(char* relativeTopic, const char* localTopic, b
     else
         isCorrect = false;
 
-    free(topic);
+    Heap::memFree(topic);
 
     return isCorrect;
 }
@@ -380,6 +380,8 @@ bool MQTTClient::checkServerBridge(char* topic)
 {
     bool isBridge = true;
 
+    char* ref1;
+    char* ref2;
     char* copyBridge;
     char* copyTopic;
     char* subBridge;
@@ -387,8 +389,11 @@ bool MQTTClient::checkServerBridge(char* topic)
 
     for(auto &bridge : _serverBridges)
     {
-        copyBridge = strdup(bridge);
-        copyTopic = strdup(topic);
+        
+        ref1 = strdup(bridge);
+        ref2 = strdup(topic);
+        copyBridge = ref1;
+        copyTopic = ref2;
         subBridge = strtok_r(copyBridge, "/", &copyBridge);
         subTopic = strtok_r(copyTopic, "/", &copyTopic);
         isBridge = true;
@@ -409,12 +414,13 @@ bool MQTTClient::checkServerBridge(char* topic)
             }
         }
 
+        Heap::memFree(ref1);
+        Heap::memFree(ref2);
+
         if(isBridge)
             break;
+            
     }
-
-    free(copyBridge);
-    free(copyTopic);
     
     return isBridge;
 }
