@@ -20,7 +20,7 @@ void MQTTClient::subscrToServerCb(const char* topic, void* msg, uint16_t msg_len
 	mq_msg->topic = (char*)Heap::memAlloc(strlen(topic)+1);
 	MBED_ASSERT(mq_msg->topic);
 	strcpy(mq_msg->topic, topic);
-	mq_msg->data = (char*)Heap::memAlloc(msg_len);
+	mq_msg->data = (void*)Heap::memAlloc(msg_len);
 	MBED_ASSERT(mq_msg->data);
 	memcpy(mq_msg->data, msg, msg_len);
 	mq_msg->topic_len = strlen(topic)+1;

@@ -138,7 +138,7 @@ class MQTTClient : public ActiveModule {
          */
         struct MqttTopicData_t{
             char topic[Blob::MaxLengthOfMqttStrings];
-            char* data;
+            void* data;
             uint16_t data_len;
         };
 

@@ -105,7 +105,8 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
             MqttTopicData_t* topicData =  (MqttTopicData_t*)mdata->data;
             MBED_ASSERT(topicData);
             
-            DEBUG_TRACE_I(_EXPR_, _MODULE_, "EV_DATA recibido topic '%s' con %d bytes, mensaje= '%.*s'", topicData->topic, topicData->data_len, topicData->data_len, topicData->data);
+            DEBUG_TRACE_I(_EXPR_, _MODULE_, "EV_DATA recibido topic '%s' con %d bytes", topicData->topic, topicData->data_len);
+            //DEBUG_TRACE_I(_EXPR_, _MODULE_, "EV_DATA recibido topic '%s' con %d bytes, mensaje= '%.*s'", topicData->topic, topicData->data_len, topicData->data_len, topicData->data);
 
             // procesa el topic recibido, para redireccionarlo localmente
 			char* localTopic = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
@@ -199,13 +200,17 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                         #else
                         if(_json_supported){
                             char* jsonMsg = cJSON_PrintUnformatted(*(cJSON**)topicData->data);
-                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje con contenido: %s", jsonMsg);
                             int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg)+1, 1, 0);
                             DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d con contenido: %s", msg_id, jsonMsg);
                             Heap::memFree(jsonMsg);
                         }
                         else{
-                            int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, topicData->data, topicData->data_len, 1, 0);
+                            cJSON* jData = JsonParser::getDataFromObjTopic(topicData->topic, topicData->data, topicData->data_len);
+                            MBED_ASSERT(jData);
+                            char* jsonMsg = cJSON_PrintUnformatted(jData);
+                            cJSON_Delete(jData);
+                            int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg)+1, 1, 0);
+                            Heap::memFree(jsonMsg);
                             DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d", msg_id);
                         }
                         #endif
