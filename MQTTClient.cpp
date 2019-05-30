@@ -195,11 +195,22 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
             ev = MqttDataEvt;
             MqttTopicData_t* mqttData = (MqttTopicData_t*)Heap::memAlloc(sizeof(MqttTopicData_t));
             MBED_ASSERT(mqttData);
-            mqttData->data_len = event->data_len + 1;
-            mqttData->data = (char*)Heap::memAlloc(mqttData->data_len);
-	    	MBED_ASSERT(mqttData->data);
-	    	memcpy(mqttData->data, event->data, event->data_len);
-	    	mqttData->data[event->data_len] = 0;
+
+            if(!_json_supported)
+                mqttData->data = JsonParser::getObjFromDataTopic(event->topic, event->data, &mqttData->data_len);
+            else
+                mqttData->data = NULL;
+
+            if(mqttData->data == NULL)
+            {
+                DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_MSG. Error parsing msg, topic [%s]. Enviando mensaje en formato JSON", (char*)event->topic);
+                mqttData->data_len = event->data_len + 1;
+                mqttData->data = (char*)Heap::memAlloc(mqttData->data_len);
+                MBED_ASSERT(mqttData->data);
+                memcpy(mqttData->data, event->data, event->data_len);
+                ((char*)mqttData->data)[event->data_len] = 0;
+            }
+
 	    	MBED_ASSERT((int) event->topic_len <= Blob::MaxLengthOfMqttStrings);
 	    	strncpy(mqttData->topic, event->topic, (int) event->topic_len);
 	    	mqttData->topic[event->topic_len] = 0;
