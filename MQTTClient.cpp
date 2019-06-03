@@ -196,8 +196,15 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
             MqttTopicData_t* mqttData = (MqttTopicData_t*)Heap::memAlloc(sizeof(MqttTopicData_t));
             MBED_ASSERT(mqttData);
 
+            MBED_ASSERT((int) event->topic_len <= Blob::MaxLengthOfMqttStrings);
+	    	strncpy(mqttData->topic, event->topic, (int) event->topic_len);
+	    	mqttData->topic[event->topic_len] = 0;
+
             if(!_json_supported)
-                mqttData->data = JsonParser::getObjFromDataTopic(event->topic, event->data, &mqttData->data_len);
+            {
+                mqttData->data = JsonParser::getObjFromDataTopic(mqttData->topic, event->data, &mqttData->data_len);
+                //JsonParser::printBinaryObject(mqttData->topic, mqttData->data, mqttData->data_len);
+            }
             else
                 mqttData->data = NULL;
 
@@ -210,10 +217,6 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
                 memcpy(mqttData->data, event->data, event->data_len);
                 ((char*)mqttData->data)[event->data_len] = 0;
             }
-
-	    	MBED_ASSERT((int) event->topic_len <= Blob::MaxLengthOfMqttStrings);
-	    	strncpy(mqttData->topic, event->topic, (int) event->topic_len);
-	    	mqttData->topic[event->topic_len] = 0;
             mdata->data = mqttData;
             break;
         }
