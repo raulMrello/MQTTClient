@@ -24,7 +24,7 @@ static esp_err_t mqtt_EventHandler_cb(esp_mqtt_event_handle_t event)
 MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
             const char *uri, const char *user, const char *pass,
             FSManager* fs, bool defdbg) : 
-            ActiveModule("MqttCli", osPriorityNormal, 3072, fs, defdbg) 
+            ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
 {
 
 	// Establece el soporte de JSON
@@ -50,7 +50,7 @@ MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* 
 MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
             const char *host, uint32_t port, const char *user, const char *pass,
             FSManager* fs, bool defdbg) : 
-            ActiveModule("MqttCli", osPriorityNormal, 3072, fs, defdbg) 
+            ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
 {
 
 	// Establece el soporte de JSON
