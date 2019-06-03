@@ -195,6 +195,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                             Heap::memFree(jsonMsg);
                         }
                         else{
+                            //JsonParser::printBinaryObject(topicData->topic, topicData->data, topicData->data_len);
                             cJSON* jData = JsonParser::getDataFromObjTopic(topicData->topic, topicData->data, topicData->data_len);
                             MBED_ASSERT(jData);
                             char* jsonMsg = cJSON_Print(jData);
