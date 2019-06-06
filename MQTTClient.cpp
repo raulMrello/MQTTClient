@@ -252,15 +252,13 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
 
 //------------------------------------------------------------------------------------
 void MQTTClient::notifyConnStatUpdate()
-{
-	Blob::NotificationData_t<Blob::MqttStatusFlags> *notif = new Blob::NotificationData_t<Blob::MqttStatusFlags>(connStatus);
-	MBED_ASSERT(notif);
-    
+{   
     char* pub_topic = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
     MBED_ASSERT(pub_topic);
     sprintf(pub_topic, "stat/conn/%s", _pub_topic_base);
+    
     if(_json_supported){
-        cJSON* jStat = JsonParser::getJsonFromNotification(*notif);
+        cJSON* jStat = JsonParser::getJsonFromObj(connStatus);
         MBED_ASSERT(jStat);
         
         //DEBUG_TRACE_I(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%s", jmsg);
@@ -268,11 +266,9 @@ void MQTTClient::notifyConnStatUpdate()
         cJSON_Delete(jStat);
     }
     else{
-        MQ::MQClient::publish(pub_topic, notif, sizeof(Blob::NotificationData_t<Blob::MqttStatusFlags>), &_publicationCb);
+        MQ::MQClient::publish(pub_topic, &connStatus, sizeof(Blob::MqttStatusFlags), &_publicationCb);
     }
     Heap::memFree(pub_topic);
-    
-    delete(notif);
 }
 
 
