@@ -48,10 +48,10 @@ void MQTTClient::subscriptionCb(const char* topic, void* msg, uint16_t msg_len)
     if(MQ::MQClient::isTokenRoot(topic, "set/cfg")){
         DEBUG_TRACE_D(_EXPR_, _MODULE_, "Recibido topic %s", topic);
 
-        Blob::SetRequest_t<Blob::MQTTCfgData_t>* req = NULL;
+        Blob::SetRequest_t<mqtt_manager>* req = NULL;
         bool json_decoded = false;
 		if(_json_supported){
-			req = (Blob::SetRequest_t<Blob::MQTTCfgData_t>*)Heap::memAlloc(sizeof(Blob::SetRequest_t<Blob::MQTTCfgData_t>));
+			req = (Blob::SetRequest_t<mqtt_manager>*)Heap::memAlloc(sizeof(Blob::SetRequest_t<mqtt_manager>));
 			MBED_ASSERT(req);
 			cJSON* msgDup = *(cJSON**)msg;
 			if(!(json_decoded = JsonParser::getSetRequestFromJson(*req, msgDup))){
@@ -60,7 +60,7 @@ void MQTTClient::subscriptionCb(const char* topic, void* msg, uint16_t msg_len)
 		}
 
         // Antes de nada, chequea que el tama�o de la zona horaria es correcto, en caso contrario, descarta el topic
-        if(!json_decoded && msg_len != sizeof(Blob::SetRequest_t<Blob::MQTTCfgData_t>)){
+        if(!json_decoded && msg_len != sizeof(Blob::SetRequest_t<mqtt_manager>)){
         	DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_MSG. Error en el n� de datos del mensaje, topic [%s]", topic);
 			return;
         }
@@ -69,11 +69,11 @@ void MQTTClient::subscriptionCb(const char* topic, void* msg, uint16_t msg_len)
         State::Msg* op = (State::Msg*)Heap::memAlloc(sizeof(State::Msg));
         MBED_ASSERT(op);
 
-        // el mensaje es un blob tipo Blob::MQTTCfgData_t
+        // el mensaje es un blob tipo mqtt_manager
         if(!json_decoded){
-        	req = (Blob::SetRequest_t<Blob::MQTTCfgData_t>*)Heap::memAlloc(sizeof(Blob::SetRequest_t<Blob::MQTTCfgData_t>));
+        	req = (Blob::SetRequest_t<mqtt_manager>*)Heap::memAlloc(sizeof(Blob::SetRequest_t<mqtt_manager>));
         	MBED_ASSERT(req);
-        	*req = *((Blob::SetRequest_t<Blob::MQTTCfgData_t>*)msg);
+        	*req = *((Blob::SetRequest_t<mqtt_manager>*)msg);
         }
         op->sig = RecvCfgSet;
 		// apunta a los datos
