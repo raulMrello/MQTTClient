@@ -95,10 +95,10 @@ void MQTTClient::init(const char* rootTopic, const char* clientId, const char* n
 
     clientHandle = NULL;
     mqttCfg = {};
-    mqttLocalCfg = {};
+    _mqtt_man.cfg = {};
     _serverBridges.clear();
     topicsSubscribed.clear();
-    isConnected = false;
+    _mqtt_man.stat.isConnected = false;
 
     #if defined(MQTT_LOCAL_PUBLISHER)
     myPublisher=callback(&MQ::MQClient::publish);
@@ -167,13 +167,13 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
     {
         case MQTT_EVENT_CONNECTED:
             DEBUG_TRACE_D(_EXPR_, _MODULE_, "MQTT_EVENT_CONNECTED");
-            isConnected = true;
+            _mqtt_man.stat.isConnected = true;
             ev = MqttConnEvt;
             break;
 
         case MQTT_EVENT_DISCONNECTED:
-            DEBUG_TRACE_D(_EXPR_, _MODULE_, "MQTT_EVENT_DISCONNECTED");
-            isConnected = false;
+            DEBUG_TRACE_D(_EXPR_, _MODULE_, "MQTT_EVENT_D_mqtt_man.stat.isConnected");
+            _mqtt_man.stat.isConnected = false;
             break;
 
         case MQTT_EVENT_SUBSCRIBED:
@@ -258,7 +258,7 @@ void MQTTClient::notifyConnStatUpdate()
     sprintf(pub_topic, "stat/conn/%s", _pub_topic_base);
     
     if(_json_supported){
-        cJSON* jStat = JsonParser::getJsonFromObj(connStatus);
+        cJSON* jStat = JsonParser::getJsonFromObj(_mqtt_man.stat.connStatus);
         MBED_ASSERT(jStat);
         
         //DEBUG_TRACE_I(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%s", jmsg);
@@ -266,7 +266,7 @@ void MQTTClient::notifyConnStatUpdate()
         cJSON_Delete(jStat);
     }
     else{
-        MQ::MQClient::publish(pub_topic, &connStatus, sizeof(Blob::MqttStatusFlags), &_publicationCb);
+        MQ::MQClient::publish(pub_topic, &_mqtt_man.stat.connStatus, sizeof(Blob::MqttStatusFlags), &_publicationCb);
     }
     Heap::memFree(pub_topic);
 }
