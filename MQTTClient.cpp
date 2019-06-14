@@ -172,7 +172,7 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
             break;
 
         case MQTT_EVENT_DISCONNECTED:
-            DEBUG_TRACE_D(_EXPR_, _MODULE_, "MQTT_EVENT_D_mqtt_man.stat.isConnected");
+            DEBUG_TRACE_D(_EXPR_, _MODULE_, "MQTT_EVENT_DISCONNECTED");
             _mqtt_man.stat.isConnected = false;
             break;
 
@@ -210,7 +210,7 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
 
             if(mqttData->data == NULL)
             {
-                DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_MSG. Error parsing msg, topic [%s]. Enviando mensaje en formato JSON", (char*)event->topic);
+                DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_MSG. Error parsing msg, topic [%s]. Enviando mensaje en formato JSON", (char*)mqttData->topic);
                 mqttData->data_len = event->data_len + 1;
                 mqttData->data = (char*)Heap::memAlloc(mqttData->data_len);
                 MBED_ASSERT(mqttData->data);
