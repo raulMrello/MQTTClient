@@ -20,40 +20,10 @@ static esp_err_t mqtt_EventHandler_cb(esp_mqtt_event_handle_t event)
 };
 
 
-//------------------------------------------------------------------------------------
-MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
-            const char *uri, const char *user, const char *pass,
-            FSManager* fs, bool defdbg) : 
+MQTTClient::MQTTClient(FSManager* fs, bool defdbg) : 
             ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
 {
-
-	// Establece el soporte de JSON
-	_json_supported = false;
-	#if MQTT_ENABLE_JSON_SUPPORT == 1
-	_json_supported = true;
-	#endif
-
-    if(defdbg){
-    	esp_log_level_set(_MODULE_, ESP_LOG_DEBUG);
-    }
-    else{
-    	esp_log_level_set(_MODULE_, ESP_LOG_WARN);
-    }
-
-
-    init(rootTopic, clientId, networkId);
-    setConfigMQTTServer(uri, user, pass);
-}
-
-
-//------------------------------------------------------------------------------------
-MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* networkId,
-            const char *host, uint32_t port, const char *user, const char *pass,
-            FSManager* fs, bool defdbg) : 
-            ActiveModule("MqttCli", osPriorityNormal, 4096, fs, defdbg) 
-{
-
-	// Establece el soporte de JSON
+    // Establece el soporte de JSON
 	_json_supported = false;
 	#if MQTT_ENABLE_JSON_SUPPORT == 1
 	_json_supported = true;
@@ -70,21 +40,7 @@ MQTTClient::MQTTClient(const char* rootTopic, const char* clientId, const char* 
     esp_log_level_set("MQTT_CLIENT", level);
     esp_log_level_set("TRANS_TCP", level);
 
-
-    init(rootTopic, clientId, networkId);
-    setConfigMQTTServer(host, port, user, pass);
-}
-
-
-//------------------------------------------------------------------------------------
-void MQTTClient::init(const char* rootTopic, const char* clientId, const char* networkId)
-{
-    sprintf(this->rootNetworkTopic, "%s/%s", rootTopic, networkId);
-    strcpy(this->clientId, clientId);
-
-    // utiliza el networkId para la suscripción al topic de dispositivo mqtt: cmd/dev/$(networkId)/#
-	sprintf(subscTopic[0], "%s/%s/get/#", rootTopic, networkId);
-    sprintf(subscTopic[1], "%s/%s/set/#", rootTopic, networkId);
+    
 
     msgCounter = 0;
     // Carga callbacks estáticas de publicación/suscripción
@@ -109,16 +65,58 @@ void MQTTClient::init(const char* rootTopic, const char* clientId, const char* n
     s_mqtt_EventHandle_cb = callback(this, &MQTTClient::mqtt_EventHandler);
 }
 
-
 //------------------------------------------------------------------------------------
-void MQTTClient::setConfigMQTTServer(const char *uri, const char *user, const char *pass)
+void MQTTClient::init(const char* rootTopic, const char* clientId, const char* networkId)
 {
-    mqttCfg.uri = uri;
-    mqttCfg.username = user;
-    mqttCfg.password = pass;
-    mqttCfg.event_handle = mqtt_EventHandler_cb;
+    sprintf(this->rootNetworkTopic, "%s/%s", rootTopic, networkId);
+    strcpy(this->clientId, clientId);
+
+    // utiliza el networkId para la suscripción al topic de dispositivo mqtt: cmd/dev/$(networkId)/#
+	sprintf(subscTopic[0], "%s/%s/get/#", rootTopic, networkId);
+    sprintf(subscTopic[1], "%s/%s/set/#", rootTopic, networkId);
+
+    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Configuración propia del cliente MQTT:");
+    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Mqtt server: %s", _mqtt_man.cfg.mqttUrl);
+    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Mqtt port: %d", _mqtt_man.cfg.mqttPort);
+    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Mqtt user: %s", _mqtt_man.cfg.mqttUser);
+    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Mqtt password: %s", _mqtt_man.cfg.mqttPass);
+
+    setConfigMQTTServer(_mqtt_man.cfg.mqttUrl,
+         _mqtt_man.cfg.mqttPort,
+         _mqtt_man.cfg.mqttUser,
+         _mqtt_man.cfg.mqttPass);
+
+    //carga la configuración y ejecuta el cliente mqtt
+    clientHandle = esp_mqtt_client_init(&mqttCfg);
+    esp_mqtt_client_start(clientHandle);
 }
 
+//------------------------------------------------------------------------------------
+bool MQTTClient::setConfig(const char *url, uint32_t port, const char *user, const char *pass, bool restart)
+{
+    strcpy(_mqtt_man.cfg.mqttUrl, url);
+    _mqtt_man.cfg.mqttPort = port;
+    strcpy(_mqtt_man.cfg.mqttUser, user);
+    strcpy(_mqtt_man.cfg.mqttPass, pass);
+
+    saveConfig();
+
+    if(restart){
+        // espera un segundo para completar el reinicio
+        DEBUG_TRACE_W(_EXPR_, _MODULE_, "#@#@#@#@#@------- REINICIANDO DISPOSITIVO -------@#@#@#@#@#");
+        Thread::wait(1000);
+        esp_restart();
+    }
+
+    if(!checkIntegrity()){
+        DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_CFG. Ha fallado el check de integridad. Establece configuraci�n por defecto.");
+        return false;
+    }
+    else{
+        DEBUG_TRACE_D(_EXPR_, _MODULE_, "Check de integridad OK.");
+        return true;
+    }
+}
 
 //------------------------------------------------------------------------------------
 void MQTTClient::setConfigMQTTServer(const char *host, uint32_t port, const char *user, const char *pass)

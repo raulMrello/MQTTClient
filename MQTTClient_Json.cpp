@@ -66,18 +66,29 @@ cJSON* getJsonFromMQTTCliCfg(const Blob::MQTTCfgData_t& cfg){
 	// key: verbosity
 	cJSON_AddNumberToObject(mqtt, JsonParser::p_verbosity, cfg.verbosity);
 
-	// key: username
-	if((value=cJSON_CreateString(cfg.username)) == NULL){
+	// key: mqttUrl
+	if((value=cJSON_CreateString(cfg.mqttUrl)) == NULL){
 		cJSON_Delete(mqtt);
 		return NULL;
 	}
-	cJSON_AddItemToObject(mqtt, JsonParser::p_username, value);
-	// key: passwd
-	if((value=cJSON_CreateString(cfg.passwd)) == NULL){
+	cJSON_AddItemToObject(mqtt, JsonParser::p_mqttUrl, value);
+
+	// key: mqttPort
+	cJSON_AddNumberToObject(mqtt, JsonParser::p_mqttPort, cfg.mqttPort);
+
+	// key: mqttUser
+	if((value=cJSON_CreateString(cfg.mqttUser)) == NULL){
 		cJSON_Delete(mqtt);
 		return NULL;
 	}
-	cJSON_AddItemToObject(mqtt, JsonParser::p_passwd, value);
+	cJSON_AddItemToObject(mqtt, JsonParser::p_mqttUser, value);
+
+	// key: mqttPass
+	if((value=cJSON_CreateString(cfg.mqttPass)) == NULL){
+		cJSON_Delete(mqtt);
+		return NULL;
+	}
+	cJSON_AddItemToObject(mqtt, JsonParser::p_mqttPass, value);
 	return mqtt;
 }
 
@@ -149,20 +160,32 @@ uint32_t getMQTTCliCfgFromJson(Blob::MQTTCfgData_t &cfg, cJSON* json){
 		cfg.verbosity = obj->valueint;
 		keys |= Blob::MqttKeyCfgVerbosity;
 	}
-	if((obj = cJSON_GetObjectItem(json, JsonParser::p_username)) != NULL){
+	if((obj = cJSON_GetObjectItem(json, JsonParser::p_mqttUrl)) != NULL){
 		char* str = obj->valuestring;
-		if(str && strlen(str) < Blob::MaxLengthOfLoginStrings){
-			strncpy(cfg.username, str, Blob::MaxLengthOfLoginStrings);
+		if(str && strlen(str) < Blob::MaxLengthOfMqttStrings){
+			strncpy(cfg.mqttUrl, str, Blob::MaxLengthOfMqttStrings);
+			keys |= Blob::MqttKeyCfgUrl;
+		}
+	}
+	if((obj = cJSON_GetObjectItem(json, JsonParser::p_mqttPort)) != NULL){
+		cfg.mqttPort = obj->valueint;
+		keys |= Blob::MqttKeyCfgPort;
+	}
+	if((obj = cJSON_GetObjectItem(json, JsonParser::p_mqttUser)) != NULL){
+		char* str = obj->valuestring;
+		if(str && strlen(str) < Blob::MaxLengthOfUserLength){
+			strncpy(cfg.mqttUser, str, Blob::MaxLengthOfUserLength);
 			keys |= Blob::MqttKeyCfgUsername;
 		}
 	}
-	if((obj = cJSON_GetObjectItem(json, JsonParser::p_passwd)) != NULL){
+	if((obj = cJSON_GetObjectItem(json, JsonParser::p_mqttPass)) != NULL){
 		char* str = obj->valuestring;
-		if(str && strlen(str) < Blob::MaxLengthOfLoginStrings){
-			strncpy(cfg.passwd, str, Blob::MaxLengthOfLoginStrings);
+		if(str && strlen(str) < Blob::MaxLengthOfPassLength){
+			strncpy(cfg.mqttPass, str, Blob::MaxLengthOfPassLength);
 			keys |= Blob::MqttKeyCfgPasswd;
 		}
 	}
+
 	cfg._keys = keys;
 	return keys;
 }

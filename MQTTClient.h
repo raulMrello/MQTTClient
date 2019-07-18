@@ -24,8 +24,11 @@ public:
 	 * 	@param fs Objeto FSManager para operaciones de backup
 	 * 	@param defdbg Flag para habilitar depuración por defecto
 	 */
-	MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *uri, const char *user, const char *pass, FSManager* fs, bool defdbg = false);
-	MQTTClient(const char* rootTopic, const char* clientId, const char* networkId, const char *host, uint32_t port, const char *user, const char *pass, FSManager* fs, bool defdbg = false);
+	MQTTClient(FSManager* fs, bool defdbg = false);
+
+	void init(const char* rootTopic, const char* clientId, const char* networkId);
+
+	bool setConfig(const char *host, uint32_t port, const char *user, const char *pass, bool restart);
 
 	void addServerBridge(char* topic);
 	void removeServerBridge(char* topic);
@@ -156,11 +159,7 @@ private:
 	/** Cola de mensajes de la m�quina de estados */
 	Queue<State::Msg, MaxQueueMessages> queueSM;
 
-	//Inicializador
-	void init(const char*, const char*, const char*);
-
 	//Establece los valores de configuración para conectar con el servidor MQTT
-	void setConfigMQTTServer(const char*, const char*, const char*);
 	void setConfigMQTTServer(const char*, uint32_t, const char*, const char*);
 
 	/** Callback invocada al recibir una actualización de un topic local al que está suscrito
@@ -217,8 +216,8 @@ private:
 
 	/** Actualiza la configuracion
 	 *
-	 * @param data Nueva configuraci�n a aplicar
-	 * @param err Recibe los errores generados durante la actualizaci�n
+	 * @param data Nueva configuraci�n a aplicar
+	 * @param err Recibe los errores generados durante la actualizaci�n
 	 */
 	void _updateConfig(const mqtt_manager& data, Blob::ErrorData_t& err);
 
