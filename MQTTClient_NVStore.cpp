@@ -6,12 +6,20 @@ static const char* _MODULE_ = "[MqttCli].......";
 
 //------------------------------------------------------------------------------------
 bool MQTTClient::checkIntegrity(){
-	if(strlen(_mqtt_man.cfg.username) >= Blob::MaxLengthOfLoginStrings){
-		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERROR: strlen(username) %d", strlen(_mqtt_man.cfg.username));
+	if(strlen(_mqtt_man.cfg.mqttUrl) == 0 || strlen(_mqtt_man.cfg.mqttUrl) >= Blob::MaxLengthOfMqttStrings){
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERROR strlen(mqttUrl) %d", strlen(_mqtt_man.cfg.mqttUrl));
 		return false;
 	}
-	if(strlen(_mqtt_man.cfg.passwd) >= Blob::MaxLengthOfLoginStrings){
-		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERROR: strlen(passwd) %d", strlen(_mqtt_man.cfg.passwd));
+	if(strlen(_mqtt_man.cfg.mqttUser) == 0 || strlen(_mqtt_man.cfg.mqttUser) >= Blob::MaxLengthOfUserLength){
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERROR strlen(mqttUser) %d", strlen(_mqtt_man.cfg.mqttUser));
+		return false;
+	}
+	if(strlen(_mqtt_man.cfg.mqttPass) == 0 || strlen(_mqtt_man.cfg.mqttPass) >= Blob::MaxLengthOfPassLength){
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERROR strlen(mqttPass) %d", strlen(_mqtt_man.cfg.mqttPass));
+		return false;
+	}
+	if(_mqtt_man.cfg.mqttPort == 0){
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERROR mqttPort is 0");
 		return false;
 	}
 	return true;
@@ -25,8 +33,10 @@ void MQTTClient::setDefaultConfig(){
 	_mqtt_man.cfg.groupMask = 0;
 	_mqtt_man.cfg.keepAlive = 0;
 	_mqtt_man.cfg.qos = 0;
-	strncpy(_mqtt_man.cfg.username, (const char*)"", Blob::MaxLengthOfLoginStrings);
-	strncpy(_mqtt_man.cfg.passwd, (const char*)"", Blob::MaxLengthOfLoginStrings);
+	strncpy(_mqtt_man.cfg.mqttUrl, (const char*)"", Blob::MaxLengthOfMqttStrings);
+	strncpy(_mqtt_man.cfg.mqttUser, (const char*)"", Blob::MaxLengthOfUserLength);
+	strncpy(_mqtt_man.cfg.mqttPass, (const char*)"", Blob::MaxLengthOfPassLength);
+	_mqtt_man.cfg.mqttPort = 0;
 	_mqtt_man.cfg.verbosity = ESP_LOG_VERBOSE;
 	saveConfig();
 }
@@ -55,11 +65,19 @@ void MQTTClient::restoreConfig(){
 		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS leyendo qos!");
 		success = false;
 	}
-	if(!restoreParameter("MqttUsername", _mqtt_man.cfg.username, Blob::MaxLengthOfLoginStrings, NVSInterface::TypeString)){
+	if(!restoreParameter("MqttUrl", _mqtt_man.cfg.mqttUrl, Blob::MaxLengthOfMqttStrings, NVSInterface::TypeString)){
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS leyendo url!");
+		success = false;
+	}
+	if(!restoreParameter("MqttPort", &_mqtt_man.cfg.mqttPort, sizeof(int32_t), NVSInterface::TypeInt32)){
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS leyendo puerto!");
+		success = false;
+	}
+	if(!restoreParameter("MqttUsername", _mqtt_man.cfg.mqttUser, Blob::MaxLengthOfUserLength, NVSInterface::TypeString)){
 		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS leyendo username!");
 		success = false;
 	}
-	if(!restoreParameter("MqttPasswd", _mqtt_man.cfg.passwd, Blob::MaxLengthOfLoginStrings, NVSInterface::TypeString)){
+	if(!restoreParameter("MqttPasswd", _mqtt_man.cfg.mqttPass, Blob::MaxLengthOfPassLength, NVSInterface::TypeString)){
 		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS leyendo passwd!");
 		success = false;
 	}
@@ -112,10 +130,16 @@ void MQTTClient::saveConfig(){
 	if(!saveParameter("MqttQos", &_mqtt_man.cfg.qos, sizeof(int32_t), NVSInterface::TypeInt32)){
 		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS grabando qos!");
 	}
-	if(!saveParameter("MqttUsername", _mqtt_man.cfg.username, Blob::MaxLengthOfLoginStrings, NVSInterface::TypeString)){
+	if(!saveParameter("MqttUrl", _mqtt_man.cfg.mqttUrl, Blob::MaxLengthOfMqttStrings, NVSInterface::TypeString)){
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS grabando url!");
+	}
+	if(!saveParameter("MqttPort", &_mqtt_man.cfg.mqttPort, sizeof(int32_t), NVSInterface::TypeInt32)){
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS grabando port!");
+	}
+	if(!saveParameter("MqttUsername", _mqtt_man.cfg.mqttUser, Blob::MaxLengthOfUserLength, NVSInterface::TypeString)){
 		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS grabando username!");
 	}
-	if(!saveParameter("MqttPasswd", _mqtt_man.cfg.passwd, Blob::MaxLengthOfLoginStrings, NVSInterface::TypeString)){
+	if(!saveParameter("MqttPasswd", _mqtt_man.cfg.mqttPass, Blob::MaxLengthOfPassLength, NVSInterface::TypeString)){
 		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS grabando passwd!");
 	}
 	if(!saveParameter("MqttVerbosity", &_mqtt_man.cfg.verbosity, sizeof(esp_log_level_t), NVSInterface::TypeUint32)){
@@ -154,11 +178,17 @@ void MQTTClient::_updateConfig(const mqtt_manager& data, Blob::ErrorData_t& err)
 		_mqtt_man.cfg.verbosity = data.cfg.verbosity;
 	}
 
+	if(data.cfg._keys & Blob::MqttKeyCfgUrl){
+		strncpy(_mqtt_man.cfg.mqttUrl, data.cfg.mqttUrl, Blob::MaxLengthOfMqttStrings);
+	}
+	if(data.cfg._keys & Blob::MqttKeyCfgPort){
+		_mqtt_man.cfg.mqttPort = data.cfg.mqttPort;
+	}
 	if(data.cfg._keys & Blob::MqttKeyCfgUsername){
-		strncpy(_mqtt_man.cfg.username, data.cfg.username, Blob::MaxLengthOfLoginStrings);
+		strncpy(_mqtt_man.cfg.mqttUser, data.cfg.mqttUser, Blob::MaxLengthOfUserLength);
 	}
 	if(data.cfg._keys & Blob::MqttKeyCfgPasswd){
-		strncpy(_mqtt_man.cfg.passwd, data.cfg.passwd, Blob::MaxLengthOfLoginStrings);
+		strncpy(_mqtt_man.cfg.mqttPass, data.cfg.mqttPass, Blob::MaxLengthOfPassLength);
 	}
 
 	strcpy(err.descr, Blob::errList[err.code]);

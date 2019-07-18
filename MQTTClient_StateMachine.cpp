@@ -50,8 +50,8 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
         	Heap::memFree(subTopicLocal);
 
             //carga la configuración y ejecuta el cliente mqtt
-            clientHandle = esp_mqtt_client_init(&mqttCfg);
-            esp_mqtt_client_start(clientHandle);
+            //clientHandle = esp_mqtt_client_init(&mqttCfg);
+            //esp_mqtt_client_start(clientHandle);
             
         	// publica estado inicial
         	notifyConnStatUpdate();
@@ -296,6 +296,11 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                     Heap::memFree(pub_topic);
                 }
 			}
+
+            // espera un segundo para completar el reinicio
+            DEBUG_TRACE_W(_EXPR_, _MODULE_, "#@#@#@#@#@------- REINICIANDO DISPOSITIVO -------@#@#@#@#@#");
+            Thread::wait(1000);
+            esp_restart();
 
 			return State::HANDLED;
 		}
