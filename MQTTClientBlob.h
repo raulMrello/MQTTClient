@@ -22,12 +22,12 @@
 #define VERS_MQTT_YTL			0
 
 
-/** Selección de la versión utilizada 	*/
-/** DEFINIR SEGÚN APLICACIÓN 			*/
+/** Selecciï¿½n de la versiï¿½n utilizada 	*/
+/** DEFINIR SEGï¿½N APLICACIï¿½N 			*/
 #define VERS_MQTT_SELECTED		VERS_MQTT_YTL /*others...*/
 
 
-/** Macro de generación de UIDs*/
+/** Macro de generaciï¿½n de UIDs*/
 #define UID_MQTT_MANAGER		(uint32_t)(0x00000007 | ((uint32_t)VERS_MQTT_SELECTED << 20))
 
 
@@ -37,6 +37,8 @@ namespace Blob
 	/** Tamaï¿½o mï¿½ximo de las cadenas de texto relacionadas con parï¿½metros del cliente mqtt */
 	static const uint8_t MaxLengthOfMqttStrings = 64;
 	static const uint8_t MaxLengthOfLoginStrings = 16;
+	static const uint8_t MaxLengthOfUserLength = 32;
+	static const uint8_t MaxLengthOfPassLength = 64;
 
 	/** Estados del cliente MQTT */
 	enum MqttStatusFlags
@@ -46,9 +48,9 @@ namespace Blob
 		SubscribedDev	= (1 << 5),//!< Suscrito al topic X
 	};
 
-	/** Flags para la configuración de notificaciones cuando su configuración se ha modificado. */
+	/** Flags para la configuraciï¿½n de notificaciones cuando su configuraciï¿½n se ha modificado. */
 	enum MqttUpdFlags{
-		EnableMqttCfgUpdNotif 	= (1 << 0),  	/// Flag activado para notificar cambios en la configuración en bloque del objeto
+		EnableMqttCfgUpdNotif 	= (1 << 0),  	/// Flag activado para notificar cambios en la configuraciï¿½n en bloque del objeto
 	};
 
 
@@ -59,9 +61,11 @@ namespace Blob
 		MqttKeyCfgGrpMsk	= (1 << 1),
 		MqttKeyCfgKeepAlive	= (1 << 2),
 		MqttKeyCfgQos		= (1 << 3),
-		MqttKeyCfgUsername	= (1 << 4),
-		MqttKeyCfgPasswd	= (1 << 5),
-		MqttKeyCfgVerbosity	= (1 << 6),
+		MqttKeyCfgUrl		= (1 << 4),
+		MqttKeyCfgPort		= (1 << 5),
+		MqttKeyCfgUsername	= (1 << 6),
+		MqttKeyCfgPasswd	= (1 << 7),
+		MqttKeyCfgVerbosity	= (1 << 8),
 		//
 		MqttKeyCfgAll     = 0x7f,
 	};
@@ -73,9 +77,15 @@ namespace Blob
 		uint16_t keepAlive;
 		uint32_t groupMask;
 		int qos;
+		
+		char mqttUrl[MaxLengthOfMqttStrings];			//!< URL del servidor MQTT
+		int mqttPort;							//!< Puerto de conexiï¿½n con el servidor MQTT
+		char mqttUser[MaxLengthOfUserLength];		//!< Usuario del cliente MQTT
+		char mqttPass[MaxLengthOfPassLength];		//!< Password del cliente MQTT
+
 		char username[MaxLengthOfLoginStrings];
 		char passwd[MaxLengthOfLoginStrings];
-		esp_log_level_t verbosity;	//!< Nivel de verbosity para las trazas de depuración
+		esp_log_level_t verbosity;	//!< Nivel de verbosity para las trazas de depuraciï¿½n
 		 uint32_t _keys;
 	};
 	struct MQTTStatData_t
@@ -105,8 +115,8 @@ namespace JSON {
 cJSON* getJsonFromMQTTCli(const Blob::MQTTBootData_t& obj, ObjDataSelection type);
 
 /**
- * Codifica la configuración actual en un objeto JSON
- * @param cfg Configuración
+ * Codifica la configuraciï¿½n actual en un objeto JSON
+ * @param cfg Configuraciï¿½n
  * @return Objeto JSON o NULL en caso de error
  */
 cJSON* getJsonFromMQTTCliCfg(const Blob::MQTTCfgData_t& cfg);
@@ -143,13 +153,13 @@ cJSON* getJsonFromMQTTCli(const T& obj, ObjDataSelection type){
  * Decodifica el mensaje JSON en un objeto
  * @param obj Recibe el objeto decodificado
  * @param json Objeto JSON a decodificar
- * @return keys Parámetros decodificados o 0 en caso de error
+ * @return keys Parï¿½metros decodificados o 0 en caso de error
  */
 uint32_t getMQTTCliFromJson(Blob::MQTTBootData_t &obj, cJSON* json);
 
 
 /**
- * Decodifica el mensaje JSON en un objeto de configuración
+ * Decodifica el mensaje JSON en un objeto de configuraciï¿½n
  * @param obj Recibe el objeto decodificado
  * @param json Objeto JSON a decodificar
  * @return keys Parï¿½metros decodificados o 0 en caso de error
