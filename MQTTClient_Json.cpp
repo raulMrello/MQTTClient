@@ -105,6 +105,18 @@ cJSON* getJsonFromMQTTCliStat(const Blob::MQTTStatData_t& stat){
 	return json;
 }
 
+//------------------------------------------------------------------------------------
+cJSON* getJsonFromMQTTCliConnStat(const Blob::MqttStatusFlags& stat){
+	cJSON* json = NULL;
+
+	if((json=cJSON_CreateObject()) == NULL){
+		return NULL;
+	}
+	// key: flags
+	cJSON_AddNumberToObject(json, JsonParser::p_flags, stat);
+	return json;
+}
+
 
 //------------------------------------------------------------------------------------
 uint32_t getMQTTCliFromJson(Blob::MQTTBootData_t &obj, cJSON* json){
@@ -199,6 +211,17 @@ uint32_t getMQTTCliStatFromJson(Blob::MQTTStatData_t &stat, cJSON* json){
 		return 0;
 	}
 	stat.connStatus = obj->valueint;
+	return 1;
+}
+
+//------------------------------------------------------------------------------------
+uint32_t getMQTTCliConnStatFromJson(Blob::MqttStatusFlags &stat, cJSON* json){
+	cJSON *obj = NULL;
+	if((obj = cJSON_GetObjectItem(json, JsonParser::p_flags)) == NULL){
+		DEBUG_TRACE_E(_EXPR_, _MODULE_, "getMQTTCliStatFromJson: flags no existe");
+		return 0;
+	}
+	stat = obj->valueint;
 	return 1;
 }
 

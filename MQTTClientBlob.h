@@ -128,6 +128,8 @@ cJSON* getJsonFromMQTTCliCfg(const Blob::MQTTCfgData_t& cfg);
  */
 cJSON* getJsonFromMQTTCliStat(const Blob::MQTTStatData_t& stat);
 
+cJSON* getJsonFromMQTTCliConnStat(const Blob::MqttStatusFlags& stat);
+
 
 /**
  * Codifica el objeto en un JSON dependiendo del tipo de objeto
@@ -144,6 +146,9 @@ cJSON* getJsonFromMQTTCli(const T& obj, ObjDataSelection type){
 	}
 	if (std::is_same<T, Blob::MQTTStatData_t>::value && type != ObjSelectCfg){
 		return getJsonFromMQTTCliStat((const Blob::MQTTStatData_t&)obj);
+	}
+	if (std::is_same<T, Blob::MqttStatusFlags>::value){
+		return getJsonFromMQTTCliConnStat((const Blob::MqttStatusFlags&)obj);
 	}
 	return NULL;
 }
@@ -174,6 +179,7 @@ uint32_t getMQTTCliCfgFromJson(Blob::MQTTCfgData_t &obj, cJSON* json);
  */
 uint32_t getMQTTCliStatFromJson(Blob::MQTTStatData_t &obj, cJSON* json);
 
+uint32_t getMQTTCliConnStatFromJson(Blob::MqttStatusFlags &obj, cJSON* json);
 
 template <typename T>
 uint32_t getMQTTCliObjFromJson(T& obj, cJSON* json_obj){
@@ -185,6 +191,9 @@ uint32_t getMQTTCliObjFromJson(T& obj, cJSON* json_obj){
 	}
 	if (std::is_same<T, Blob::MQTTStatData_t>::value){
 		return JSON::getMQTTCliStatFromJson((Blob::MQTTStatData_t&)obj, json_obj);
+	}
+	if (std::is_same<T, Blob::MqttStatusFlags>::value){
+		return JSON::getMQTTCliConnStatFromJson((Blob::MqttStatusFlags&)obj, json_obj);
 	}
 
 	return 0;
