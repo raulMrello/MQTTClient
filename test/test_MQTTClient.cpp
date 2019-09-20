@@ -94,32 +94,32 @@ public:
         char dev_name[MaxSizeOfAliasName];
         strcpy(dev_name, P2P_PRODUCT_SERIAL);
         
-        char* root_topic[64];
+        char root_topic[64];
         sprintf(root_topic, "%s/%s", P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE);
         MDF_LOGI("Iniciando cliente MQTT en root_topic %s", root_topic);
         
         mqttcli = new MQTTClient(fs, true);
         MBED_ASSERT(mqttcli);
-		_mqttcli->setJSONSupport(_json_supported);
+		mqttcli->setJSONSupport(false);
         mqttcli->setPublicationBase("mqtt");
         mqttcli->setSubscriptionBase("mqtt");
         do{
             Thread::wait(100);
         }while(!mqttcli->ready());
         
-        DEBUG_TRACE_I(_EXPR_, "Test MQTT", "Instalando bridges mqlib <-> mqtt");
-	    _mqttcli->addServerBridge("stat/+/+/boot/sys");
-	    _mqttcli->addServerBridge("stat/+/+/value/sys");
-	    _mqttcli->addServerBridge("stat/+/+/modules/sys");
-	    _mqttcli->addServerBridge("stat/+/+/value/energy");
-		_mqttcli->addServerBridge("stat/+/+/value/light");
-		_mqttcli->addServerBridge("stat/+/+/value/astcal");
-	    _mqttcli->addServerBridge("stat/+/+/cfg/+");
-	    _mqttcli->addServerBridge("stat/+/+/+/fwupd");
+		MDF_LOGI("Instalando bridges mqlib <-> mqtt");
+	    mqttcli->addServerBridge("stat/+/+/boot/sys");
+	    mqttcli->addServerBridge("stat/+/+/value/sys");
+	    mqttcli->addServerBridge("stat/+/+/modules/sys");
+	    mqttcli->addServerBridge("stat/+/+/value/energy");
+		mqttcli->addServerBridge("stat/+/+/value/light");
+		mqttcli->addServerBridge("stat/+/+/value/astcal");
+	    mqttcli->addServerBridge("stat/+/+/cfg/+");
+	    mqttcli->addServerBridge("stat/+/+/+/fwupd");
 
-		_mqttcli->init(root_topic, serial, meshId);
+		mqttcli->init(root_topic, "1234567890", "123456");
 
-		DEBUG_TRACE_I(_EXPR_, "Test MQTT", "MQTTClient OK!");
+		MDF_LOGI("MQTTClient OK!");
     }
 
 private:
