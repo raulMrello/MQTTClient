@@ -10,7 +10,6 @@
 #include "MQTTClient.h"
 #include "unity.h"
 #include "WifiInterface.h"
-#include "LightManagerBlob.h"
 
 #define P2P_PRODUCT_FAMILY			"XEO"
 #define P2P_PRODUCT_TYPE			"PPL"
@@ -22,70 +21,6 @@ static const char *TAG = "Test_MQTTClient";
 static const uint8_t MaxSizeOfAliasName = 22;
 static FSManager* fs = NULL;
 static MQTTClient* mqttcli = NULL;
-
-//-----------------------------------------------------------------------------
-/** Lista de tokens proporcionados */
-static MQ::Token token_list[] = {
-	P2P_PRODUCT_FAMILY,
-	P2P_PRODUCT_TYPE,
-	P2P_PRODUCT_SERIAL,
-    "ack",
-	"astcal",
-	"boot",
-	"calib",
-	"cfg",
-    "cmd",
-	"conn",
-    "dev",
-    "dir",
-	"endis",
-	"energy",
-    "event",
-	"evt",
-	"get",
-    "group",
-	"hmi",
-	"led",
-	"light",
-	"minmax",
-	"modbus",
-	"mqtt",
-	"name",
-    "netm",
-	"ntp",
-	"ping",
-    "pushbutton",
-	"relay",
-    "req",
-	"result",
-    "rpc",
-	"set",
-    "stat",
-    "sync",
-	"sys",
-    "value",
-	"wifi",
-    "zerocross",
-	// Reservo identificadores para hasta un m�ximo de 16 grupos MESH de forma fija.
-	//#if defined(ENABLE_MESH)
-	"0",
-	"1",
-	"2",
-	"3",
-	"4",
-	"5",
-	"6",
-	"7",
-	"8",
-	"9",
-	"10",
-	"11",
-	"12",
-	"13",
-	"14",
-	"15",
-	//#endif
-};
 
 /** Objeto para habilitar trazas de depuraci�n syslog */
 void (*syslog_print)(const char*level, const char* tag, const char* format, ...) = NULL;
@@ -159,26 +94,32 @@ public:
         char dev_name[MaxSizeOfAliasName];
         strcpy(dev_name, P2P_PRODUCT_SERIAL);
         
-        char root_topic[64];
+        char* root_topic[64];
         sprintf(root_topic, "%s/%s", P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE);
         MDF_LOGI("Iniciando cliente MQTT en root_topic %s", root_topic);
         
-        mqttcli = new MQTTClient(root_topic, dev_name, CONFIG_MESH_ID, URL, PORT, fs, true);
-        
+        mqttcli = new MQTTClient(fs, true);
         MBED_ASSERT(mqttcli);
+		_mqttcli->setJSONSupport(_json_supported);
         mqttcli->setPublicationBase("mqtt");
         mqttcli->setSubscriptionBase("mqtt");
         do{
             Thread::wait(100);
         }while(!mqttcli->ready());
         
-        /*DEBUG_TRACE_I(_EXPR_, _MODULE_, "Instalando bridges mqlib <-> mqtt");
-        mqttcli->addLocalBridge("stat/cfg/astcal");
-        mqttcli->addLocalBridge("stat/cfg/energy");
-        mqttcli->addLocalBridge("stat/value/energy");
-        mqttcli->addLocalBridge("stat/cfg/light");
-        mqttcli->addLocalBridge("stat/value/light");
-        mqttcli->addLocalBridge("stat/boot/sys");*/
+        DEBUG_TRACE_I(_EXPR_, "Test MQTT", "Instalando bridges mqlib <-> mqtt");
+	    _mqttcli->addServerBridge("stat/+/+/boot/sys");
+	    _mqttcli->addServerBridge("stat/+/+/value/sys");
+	    _mqttcli->addServerBridge("stat/+/+/modules/sys");
+	    _mqttcli->addServerBridge("stat/+/+/value/energy");
+		_mqttcli->addServerBridge("stat/+/+/value/light");
+		_mqttcli->addServerBridge("stat/+/+/value/astcal");
+	    _mqttcli->addServerBridge("stat/+/+/cfg/+");
+	    _mqttcli->addServerBridge("stat/+/+/+/fwupd");
+
+		_mqttcli->init(root_topic, serial, meshId);
+
+		DEBUG_TRACE_I(_EXPR_, "Test MQTT", "MQTTClient OK!");
     }
 
 private:
@@ -244,11 +185,15 @@ TEST_CASE("TEST_MQTTClient_PUBLISH", "[MQTTClient]")
 {
 	esp_log_level_set(TAG, ESP_LOG_DEBUG);
 
-	Blob::LightStatData_t light = {1,5};
+	struct __packed LightStatData_t{
+		uint32_t flags;
+		uint8_t outValue;
+	};
+	LightStatData_t light = {1,5};
 
 	MQ::PublishCallback pubMQTT = callback(publicationCb);
 
-	MQ::MQClient::publish("stat/0/XEPPL00000000/value/light", &light, sizeof(Blob::LightStatData_t), &pubMQTT);
+	MQ::MQClient::publish("stat/0/XEPPL00000000/value/light", &light, sizeof(LightStatData_t), &pubMQTT);
 
 	while(!testFin)
 	{
