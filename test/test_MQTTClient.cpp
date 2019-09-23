@@ -12,7 +12,7 @@
 #include "WifiInterface.h"
 
 #define P2P_PRODUCT_FAMILY			"XEO"
-#define P2P_PRODUCT_TYPE			"PPL"
+#define P2P_PRODUCT_TYPE			"MOD"
 #define P2P_PRODUCT_SERIAL			"XEPPL00000000"
 
 static const char *URL = "192.168.254.65";
@@ -24,18 +24,6 @@ static MQTTClient* mqttcli = NULL;
 
 /** Objeto para habilitar trazas de depuraci�n syslog */
 void (*syslog_print)(const char*level, const char* tag, const char* format, ...) = NULL;
-
-//---------------------------------------------------------------------------
-/**
- * @brief Test para verificar el inicio de los interfaces wifi
- */
-TEST_CASE("TEST_WIFI_START", "[MQTTClient]")
-{
-    MDF_LOGI("Iniciando TEST 1");
-	esp_log_level_set(TAG, ESP_LOG_DEBUG);
-	mdf_err_t result = WifiInterface::start("Wifi", CONFIG_ROUTER_SSID, CONFIG_ROUTER_PASSWORD, CONFIG_MESH_ID, CONFIG_MESH_PASSWORD);
-	TEST_ASSERT_EQUAL(result, MDF_OK);
-}
 
 
 //---------------------------------------------------------------------------
@@ -49,129 +37,84 @@ TEST_CASE("TEST_WIFI_START", "[MQTTClient]")
 #include "mbed.h"
 #include "FSManager.h"
 
-class test_wifi_registration{
-public:
-	test_wifi_registration(){
-		_handled_count = 0;
-		_unhandled_count = 0;
-		_evlist.push_back(MDF_EVENT_MWIFI_ROOT_GOT_IP);
-		_evlist.push_back(MDF_EVENT_MWIFI_ROOT_LOST_IP);
-	}
-
-	mdf_err_t test_run(){
-		return WifiInterface::attachEventHandler((uint32_t)this, callback(this, &test_wifi_registration::_eventLoopCb), _evlist);
-	}
-
-	void getCounters(int& handled, int& unhandled){
-		handled = _handled_count; unhandled = _unhandled_count;
-	}
-
-    void initMQTTClient()
-    {
-        /**************** MQLib Setup **************/
-
-        // Arranca el broker con la siguiente configuraci�n:
-        //  - Lista de tokens predefinida
-        //  - N�mero m�ximo de caracteres para los topics: 64 caracteres incluyendo fin de cadena '\0'
-        MDF_LOGI("Iniciando MQLib... ");
-        MQ::MQBroker::start(64, true);
-
-        // Espera a que el broker est� operativo
-        while(!MQ::MQBroker::ready()){
-            Thread::wait(100);
-        }
-        MDF_LOGI("MQLib OK!");
 
 
-        MDF_LOGI("Iniciando FSManager");
-        fs = new FSManager("fs");
-        if(fs->ready()){
-            #warning TODO Recuperar datos de backup
-            // ... a�adir c�digo aqu�
-        }
-        MDF_LOGI("FSManager OK!");
-        
-        char dev_name[MaxSizeOfAliasName];
-        strcpy(dev_name, P2P_PRODUCT_SERIAL);
-        
-        char root_topic[64];
-        sprintf(root_topic, "%s/%s", P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE);
-        MDF_LOGI("Iniciando cliente MQTT en root_topic %s", root_topic);
-        
-        mqttcli = new MQTTClient(fs, true);
-        MBED_ASSERT(mqttcli);
-		mqttcli->setJSONSupport(false);
-        mqttcli->setPublicationBase("mqtt");
-        mqttcli->setSubscriptionBase("mqtt");
-        do{
-            Thread::wait(100);
-        }while(!mqttcli->ready());
-        
-		MDF_LOGI("Instalando bridges mqlib <-> mqtt");
-	    mqttcli->addServerBridge("stat/+/+/boot/sys");
-	    mqttcli->addServerBridge("stat/+/+/value/sys");
-	    mqttcli->addServerBridge("stat/+/+/modules/sys");
-	    mqttcli->addServerBridge("stat/+/+/value/energy");
-		mqttcli->addServerBridge("stat/+/+/value/light");
-		mqttcli->addServerBridge("stat/+/+/value/astcal");
-	    mqttcli->addServerBridge("stat/+/+/cfg/+");
-	    mqttcli->addServerBridge("stat/+/+/+/fwupd");
-
-		mqttcli->init(root_topic, "1234567890", "123456");
-
-		MDF_LOGI("MQTTClient OK!");
-    }
-
-private:
-    std::list<mdf_event_loop_t> _evlist;
-	mdf_err_t _eventLoopCb(mdf_event_loop_t event, void* ctx){
-		switch(event){
-			case MDF_EVENT_MWIFI_ROOT_GOT_IP: {
-				MDF_LOGI("TEST, Got IP");
-				_handled_count++;
-                MDF_LOGI("Iniciando MQTTClient");
-                initMQTTClient();
-                MDF_LOGI("MQTT iniciado");
-				break;
-			}
-
-			case MDF_EVENT_MWIFI_ROOT_LOST_IP: {
-				MDF_LOGI("TEST, Lost IP");
-				_handled_count++;
-				break;
-			}
-
-			default:
-				_unhandled_count++;
-				break;
-		}
-		return MDF_OK;
-	}
-
-	int _handled_count;
-	int _unhandled_count;
-};
-
-
-TEST_CASE("TEST_WIFI_REGISTRATION", "[MQTTClient]")
+void initMQTTClient()
 {
-	esp_log_level_set(TAG, ESP_LOG_DEBUG);
+	/**************** MQLib Setup **************/
 
-	test_wifi_registration *t = new test_wifi_registration();
+	// Arranca el broker con la siguiente configuraci�n:
+	//  - Lista de tokens predefinida
+	//  - N�mero m�ximo de caracteres para los topics: 64 caracteres incluyendo fin de cadena '\0'
+	MDF_LOGI("Iniciando MQLib... ");
+	MQ::MQBroker::start(64, true);
 
-	// checks registration
-	mdf_err_t result = t->test_run();
-	TEST_ASSERT_EQUAL(result, MDF_OK);
-
-	// checks event results
-	int count_ok=0,count_err=0;
-	while((count_ok+count_err)==0){
-		Thread::wait(1);
-		t->getCounters(count_ok, count_err);
+	// Espera a que el broker est� operativo
+	while(!MQ::MQBroker::ready()){
+		Thread::wait(100);
 	}
-    Thread::wait(10000);
-	TEST_ASSERT_EQUAL(count_err, 0);
+	MDF_LOGI("MQLib OK!");
+
+
+	MDF_LOGI("Iniciando FSManager");
+	fs = new FSManager("fs");
+	if(fs->ready()){
+		#warning TODO Recuperar datos de backup
+		// ... a�adir c�digo aqu�
+	}
+	MDF_LOGI("FSManager OK!");
+	
+	char dev_name[MaxSizeOfAliasName];
+	strcpy(dev_name, P2P_PRODUCT_SERIAL);
+	
+	char root_topic[64];
+	sprintf(root_topic, "%s/%s", P2P_PRODUCT_FAMILY, P2P_PRODUCT_TYPE);
+	MDF_LOGI("Iniciando cliente MQTT en root_topic %s", root_topic);
+	
+	mqttcli = new MQTTClient(fs, true);
+	MBED_ASSERT(mqttcli);
+	mqttcli->setJSONSupport(false);
+	mqttcli->setPublicationBase("mqtt");
+	mqttcli->setSubscriptionBase("mqtt");
+	do{
+		Thread::wait(100);
+	}while(!mqttcli->ready());
+	
+	MDF_LOGI("Instalando bridges mqlib <-> mqtt");
+	mqttcli->addServerBridge("stat/+/+/boot/sys");
+	mqttcli->addServerBridge("stat/+/+/value/sys");
+	mqttcli->addServerBridge("stat/+/+/modules/sys");
+	mqttcli->addServerBridge("stat/+/+/value/energy");
+	mqttcli->addServerBridge("stat/+/+/value/reqman");
+	mqttcli->addServerBridge("stat/+/+/value/astcal");
+	mqttcli->addServerBridge("stat/+/+/cfg/+");
+	mqttcli->addServerBridge("stat/+/+/+/fwupd");
+
+	mqttcli->init(root_topic, "1234567890", "123456");
+
+	MDF_LOGI("MQTTClient OK!");
 }
+
+TEST_CASE("TEST_WIFI_START", "[MQTTClient]")
+{
+    MDF_LOGI("Iniciando TEST 1");
+	WifiInterface::wifiInit();
+	MDF_LOGI("Arrancando WifiInterface...");
+	mdf_err_t result = WifiInterface::start("Wifi", "Invitado", "11FF00DECA", "123456", "111222111");
+	while(!WifiInterface::hasIp()){
+		Thread::wait(100);
+	}
+	MDF_LOGI("WifiInterface arrancado OK!. HEAP_8=%d, HEAP_32=%d",
+
+				  heap_caps_get_free_size(MALLOC_CAP_8BIT),
+				  heap_caps_get_free_size(MALLOC_CAP_32BIT));
+
+	initMQTTClient();
+
+	TEST_ASSERT_EQUAL(result, MDF_OK);
+}
+
+
 
 bool testFin = false;
 
@@ -185,15 +128,32 @@ TEST_CASE("TEST_MQTTClient_PUBLISH", "[MQTTClient]")
 {
 	esp_log_level_set(TAG, ESP_LOG_DEBUG);
 
-	struct __packed LightStatData_t{
-		uint32_t flags;
-		uint8_t outValue;
+	struct __packed element_request{
+		uint32_t uid;
+		char source[MaxSourceLength];         //uid del modulo
+		uint8_t priority;       // 0 máxima prioridad
+		uint8_t action;
+		//uint8_t stat;
+		uint32_t idUser;
+		uint32_t idGroup;
 	};
-	LightStatData_t light = {1,5};
+
+	element_request bla = {};
+	bla.uid = 1;
+	strcpy(bla.source,"mennekes");
+	bla.source[strlen("mennekes")]=0;
+	bla.priority = 0;
+	bla.action = 1;
+	bla.idUser = 22123;
+	bla.idGroup = 0;
+
+	Blob::NotificationData_t<element_request> *notif = new Blob::NotificationData_t<element_request>(bla);
+	//JsonParser::printBinaryObject(topic, notif, sizeof(Blob::NotificationData_t<element_request>));
+	delete(notif);
 
 	MQ::PublishCallback pubMQTT = callback(publicationCb);
 
-	MQ::MQClient::publish("stat/0/XEPPL00000000/value/light", &light, sizeof(LightStatData_t), &pubMQTT);
+	MQ::MQClient::publish("stat/0/XEPPL00000000/value/reqman", notif, sizeof(Blob::NotificationData_t<element_request>), &pubMQTT);
 
 	while(!testFin)
 	{
