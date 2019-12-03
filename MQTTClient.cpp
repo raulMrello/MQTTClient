@@ -234,6 +234,7 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
 
     // postea en la cola de la m�quina de estados
     if(putMessage(op) != osOK){
+    	DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_PUT mqtt_EventHandler");
         if(ev == MqttDataEvt){
     		MqttTopicData_t* topicdata = (MqttTopicData_t*)mdata->data;
     		Heap::memFree(topicdata->data);
