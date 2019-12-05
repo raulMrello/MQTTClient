@@ -156,9 +156,6 @@ private:
 		void* data;
 	};
 
-	/** Cola de mensajes de la m�quina de estados */
-	Queue<State::Msg, MaxQueueMessages> queueSM;
-
 	//Establece los valores de configuración para conectar con el servidor MQTT
 	void setConfigMQTTServer(const char*, uint32_t, const char*, const char*);
 
@@ -181,17 +178,6 @@ private:
 	 *  @return State::StateResult Resultado del manejo del evento
 	 */
 	virtual State::StateResult Init_EventHandler(State::StateEvent* se);
-
-	/** Interfaz para postear un mensaje de la m�quina de estados en el Mailbox de la clase heredera
-	 *  @param msg Mensaje a postear
-	 *  @return Resultado
-	 */
-	virtual osStatus putMessage(State::Msg *msg);
-
-	/** Interfaz para obtener un evento osEvent de la clase heredera
-	 *  @param msg Mensaje a postear
-	 */
-	virtual osEvent getOsEvent();
 
 	/** Chequea la integridad de los datos de configuraci�n <_cfg>. En caso de que algo no sea
 	 * 	coherente, restaura a los valores por defecto y graba en memoria NV.
