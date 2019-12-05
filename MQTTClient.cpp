@@ -129,15 +129,6 @@ void MQTTClient::setConfigMQTTServer(const char *host, uint32_t port, const char
 }
 
 
-//------------------------------------------------------------------------------------
-osStatus MQTTClient::putMessage(State::Msg *msg){
-    osStatus ost = queueSM.put(msg, ActiveModule::DefaultPutTimeout);
-    if(ost != osOK){
-        DEBUG_TRACE_E(_EXPR_, _MODULE_, "QUEUE_PUT_ERROR %d", ost);
-    }
-    return ost;
-}
-
 
 //------------------------------------------------------------------------------------
 void MQTTClient::publicationCb(const char* topic, int32_t result)
@@ -434,12 +425,6 @@ bool MQTTClient::checkServerBridge(char* topic)
     return isBridge;
 }
 
-
-//------------------------------------------------------------------------------------
-osEvent MQTTClient::getOsEvent()
-{
-    return queueSM.get();
-}
 
 
 void MQTTClient::stop(){
