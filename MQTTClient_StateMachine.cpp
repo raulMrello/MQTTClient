@@ -39,7 +39,15 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
         		DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_SUBSC en la suscripción LOCAL a %s", subTopicLocal);
             }
 
-            sprintf(subTopicLocal, "stat/+/+/+/#");
+            sprintf(subTopicLocal, "stat/+/+/+/+");
+        	if(MQ::MQClient::subscribe(subTopicLocal, &subscriptionToServerCb) == MQ::SUCCESS){
+        		DEBUG_TRACE_D(_EXPR_, _MODULE_, "Sucripción LOCAL hecha a %s", subTopicLocal);
+        	}
+            else{
+        		DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_SUBSC en la suscripción LOCAL a %s", subTopicLocal);
+            }
+
+            sprintf(subTopicLocal, "stat/+/+/+/+/+");
         	if(MQ::MQClient::subscribe(subTopicLocal, &subscriptionToServerCb) == MQ::SUCCESS){
         		DEBUG_TRACE_D(_EXPR_, _MODULE_, "Sucripción LOCAL hecha a %s", subTopicLocal);
         	}
