@@ -133,7 +133,7 @@ void MQTTClient::setConfigMQTTServer(const char *host, uint32_t port, const char
 //------------------------------------------------------------------------------------
 void MQTTClient::publicationCb(const char* topic, int32_t result)
 {
-	DEBUG_TRACE_I(_EXPR_, _MODULE_, "PUB_DONE en topic local '%s' con resultado '%d'", topic, result);
+	DEBUG_TRACE_D(_EXPR_, _MODULE_, "PUB_DONE en topic local '%s' con resultado '%d'", topic, result);
 }
 
 
