@@ -9,6 +9,7 @@
 #include <map>
 #include <mwifi.h>
 #include <algorithm>
+#include "MQTTClient_UserConfig.h"
 /** Flag para habilitar el soporte de objetos JSON en las suscripciones a MQLib
  *  Por defecto DESACTIVADO
  */

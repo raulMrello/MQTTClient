@@ -250,8 +250,7 @@ void MQTTClient::notifyConnStatUpdate()
     if(_json_supported){
         cJSON* jStat = JsonParser::getJsonFromObj(_mqtt_man.stat.connStatus);
         MBED_ASSERT(jStat);
-        
-        //DEBUG_TRACE_I(_EXPR_, _MODULE_, "Notificando cambio de estado flags=%s", jmsg);
+
         MQ::MQClient::publish(pub_topic, &jStat, sizeof(cJSON**), &_publicationCb);
         cJSON_Delete(jStat);
     }
@@ -259,6 +258,7 @@ void MQTTClient::notifyConnStatUpdate()
         MQ::MQClient::publish(pub_topic, &_mqtt_man.stat.connStatus, sizeof(Blob::MqttStatusFlags), &_publicationCb);
     }
     Heap::memFree(pub_topic);
+    DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT en estado = %x", (uint32_t)_mqtt_man.stat.connStatus);
 }
 
 
