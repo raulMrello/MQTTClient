@@ -33,14 +33,10 @@ void MQTTClient::setDefaultConfig(){
 	_mqtt_man.cfg.groupMask = 0;
 	_mqtt_man.cfg.keepAlive = 0;
 	_mqtt_man.cfg.qos = 0;
-	strncpy(_mqtt_man.cfg.mqttUrl, (const char*)"188.208.218.221", Blob::MaxLengthOfMqttStrings);
-	strncpy(_mqtt_man.cfg.mqttUser, (const char*)"VIARIS_uni", Blob::MaxLengthOfUserLength);
-	strncpy(_mqtt_man.cfg.mqttPass, (const char*)"dhbu-9i3assdv2489", Blob::MaxLengthOfPassLength);
-	/*strncpy(_mqtt_man.cfg.mqttUrl, (const char*)"", Blob::MaxLengthOfMqttStrings);
-	strncpy(_mqtt_man.cfg.mqttUser, (const char*)"", Blob::MaxLengthOfUserLength);
-	strncpy(_mqtt_man.cfg.mqttPass, (const char*)"", Blob::MaxLengthOfPassLength);*/
-	_mqtt_man.cfg.mqttPort = 1883;
-	//_mqtt_man.cfg.mqttPort = 0;
+	strncpy(_mqtt_man.cfg.mqttUrl, MQTT_URL, Blob::MaxLengthOfMqttStrings);
+	strncpy(_mqtt_man.cfg.mqttUser, MQTT_USER, Blob::MaxLengthOfUserLength);
+	strncpy(_mqtt_man.cfg.mqttPass, MQTT_PASS, Blob::MaxLengthOfPassLength);
+	_mqtt_man.cfg.mqttPort = MQTT_PORT;
 	_mqtt_man.cfg.verbosity = APP_MQTTMANAGER_LOG_LEVEL;
 	saveConfig();
 }
