@@ -29,16 +29,9 @@ MQTTClient::MQTTClient(FSManager* fs, bool defdbg) :
 	_json_supported = true;
 	#endif
 
-	esp_log_level_t level;
-    if(defdbg){
-    	level = ESP_LOG_DEBUG;
-    }
-    else{
-    	level = ESP_LOG_WARN;
-    }
-    esp_log_level_set(_MODULE_, level);
-    esp_log_level_set("MQTT_CLIENT", level);
-    esp_log_level_set("TRANS_TCP", level);
+    esp_log_level_set(_MODULE_, APP_MQTTCLIENT_LOG_LEVEL);
+    esp_log_level_set("MQTT_CLIENT", APP_MQTTCLIENT_LOG_LEVEL);
+    esp_log_level_set("TRANS_TCP", APP_MQTTCLIENT_LOG_LEVEL);
 
     
 
