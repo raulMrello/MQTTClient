@@ -37,7 +37,7 @@ void MQTTClient::setDefaultConfig(){
 	strncpy(_mqtt_man.cfg.mqttUser, MQTT_USER, Blob::MaxLengthOfUserLength);
 	strncpy(_mqtt_man.cfg.mqttPass, MQTT_PASS, Blob::MaxLengthOfPassLength);
 	_mqtt_man.cfg.mqttPort = MQTT_PORT;
-	_mqtt_man.cfg.verbosity = APP_MQTTMANAGER_LOG_LEVEL;
+	_mqtt_man.cfg.verbosity = APP_MQTTCLIENT_LOG_LEVEL;
 	saveConfig();
 }
 
