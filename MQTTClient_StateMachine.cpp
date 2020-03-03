@@ -12,13 +12,13 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
     {
         case State::EV_ENTRY:
         {
-        	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Iniciando recuperaci�n de datos...");
+        	DEBUG_TRACE_D(_EXPR_, _MODULE_, "Iniciando recuperaci�n de datos...");
 
         	// recupera los datos de memoria NV
         	restoreConfig();
 
-        	// Marca el estado como conectando
-            _mqtt_man.stat.connStatus = Blob::Subscribing;
+        	// Marca el estado como desconectado
+            _mqtt_man.stat.connStatus = Blob::Disconnected;
 
         	// realiza la suscripción local ej: "get.set/+/mqtt"
             char* subTopicLocal = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
@@ -86,6 +86,15 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
             return State::HANDLED;
         }
 
+        case MqttDiscEvt:
+        {
+            _mqtt_man.stat.connStatus = Blob::Disconnected;
+        	DEBUG_TRACE_D(_EXPR_, _MODULE_, "Desconectado del servidor");
+            topicsSubscribed.clear();
+            notifyConnStatUpdate();
+            return State::HANDLED;
+        }
+
         case MqttSubscrEvt:
         {
             bool isTopicsSubscribed = true;
@@ -113,8 +122,8 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
             MqttTopicData_t* topicData =  (MqttTopicData_t*)mdata->data;
             MBED_ASSERT(topicData);
             
-            DEBUG_TRACE_I(_EXPR_, _MODULE_, "EV_DATA recibido topic '%s' con %d bytes", topicData->topic, topicData->data_len);
-            //DEBUG_TRACE_I(_EXPR_, _MODULE_, "EV_DATA recibido topic '%s' con %d bytes, mensaje= '%.*s'", topicData->topic, topicData->data_len, topicData->data_len, topicData->data);
+            DEBUG_TRACE_D(_EXPR_, _MODULE_, "EV_DATA recibido topic '%s' con %d bytes", topicData->topic, topicData->data_len);
+            //DEBUG_TRACE_D(_EXPR_, _MODULE_, "EV_DATA recibido topic '%s' con %d bytes, mensaje= '%.*s'", topicData->topic, topicData->data_len, topicData->data_len, topicData->data);
 
             // procesa el topic recibido, para redireccionarlo localmente
 			char* localTopic = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
@@ -137,7 +146,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                     // a más nodos, se enviará tal cual para ser procesado por NetworkManager
                     if(isOwnMsg)
                     {
-                        //DEBUG_TRACE_I(_EXPR_, _MODULE_, "Imprimir mqtt to mqlib");
+                        //DEBUG_TRACE_D(_EXPR_, _MODULE_, "Imprimir mqtt to mqlib");
                         //JsonParser::printBinaryObject(relativeTopic, topicData->data, topicData->data_len);
                         if((err = publish(relativeTopic, topicData->data, topicData->data_len, &_publicationCb)) != MQ::SUCCESS){
                             DEBUG_TRACE_E(_EXPR_, _MODULE_, "ERR_MQLIB_PUB al publicar en topic local '%s' con resultado '%d'", localTopic, err);
@@ -165,7 +174,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
         case MqttPublishToServer:
         {
-            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Solicitud de publicar a servidor");
+            DEBUG_TRACE_D(_EXPR_, _MODULE_, "Solicitud de publicar a servidor");
             Blob::BaseMsg_t* topicData =  (Blob::BaseMsg_t*)st_msg->msg;
             MBED_ASSERT(topicData);
 
@@ -187,7 +196,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                             if((jsonMsg = Blob::ParseJson(relativeTopic, topicData->data, topicData->data_len, ActiveModule::_defdbg)) != NULL)
                             {
                                 int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg), 1, 0);
-                                DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d con contenido: %s", msg_id, jsonMsg);
+                                DEBUG_TRACE_D(_EXPR_, _MODULE_, "Publicando en servidor topic=%s, mensaje id:%d con contenido: %s", pubTopic, msg_id, jsonMsg);
                             }
                             Heap::memFree(jsonMsg);
                         }
@@ -199,7 +208,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                         if(_json_supported){
                             char* jsonMsg = cJSON_PrintUnformatted(*(cJSON**)topicData->data);
                             int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg)+1, 1, 0);
-                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d con contenido: %s", msg_id, jsonMsg);
+                            DEBUG_TRACE_D(_EXPR_, _MODULE_, "Publicando en servidor topic=%s, mensaje id:%d con contenido: %s", pubTopic, msg_id, jsonMsg);
                             Heap::memFree(jsonMsg);
                         }
                         else{
@@ -210,7 +219,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                             cJSON_Delete(jData);
                             int msg_id = esp_mqtt_client_publish(clientHandle, pubTopic, jsonMsg, strlen(jsonMsg)+1, 1, 0);
                             Heap::memFree(jsonMsg);
-                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en servidor mensaje id:%d", msg_id);
+                            DEBUG_TRACE_I(_EXPR_, _MODULE_, "Publicando en topic=%s, servidor mensaje id:%d", pubTopic, msg_id);
                         }
                         #endif
                     }
@@ -276,7 +285,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
 			// almacena en el sistema de ficheros
 			saveConfig();
-			DEBUG_TRACE_I(_EXPR_, _MODULE_, "Config actualizada");
+			DEBUG_TRACE_D(_EXPR_, _MODULE_, "Config actualizada");
 
 			// si est� habilitada la notificaci�n de actualizaci�n, lo notifica
 			if((_mqtt_man.cfg.updFlagMask & Blob::EnableMqttCfgUpdNotif) != 0){
@@ -343,7 +352,7 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                 // libera la memoria asignada al topic de publicaci�n
                 Heap::memFree(pub_topic);
 
-                DEBUG_TRACE_I(_EXPR_, _MODULE_, "Enviada respuesta con la configuraci�n solicitada");
+                DEBUG_TRACE_D(_EXPR_, _MODULE_, "Enviada respuesta con la configuraci�n solicitada");
                 return State::HANDLED;
             }
 		}

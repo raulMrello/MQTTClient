@@ -42,7 +42,7 @@ void MQTTClient::subscrToServerCb(const char* topic, void* msg, uint16_t msg_len
 
 void MQTTClient::subscriptionCb(const char* topic, void* msg, uint16_t msg_len)
 {
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Recibido topic local %s con mensaje de tamaa�o '%d'", topic, msg_len);
+    DEBUG_TRACE_D(_EXPR_, _MODULE_, "Recibido topic local %s con mensaje de tamaa�o '%d'", topic, msg_len);
 
     // si es un comando para actualizar en bloque toda la configuraci�n...
     if(MQ::MQClient::isTokenRoot(topic, "set/cfg")){

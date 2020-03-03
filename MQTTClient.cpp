@@ -30,8 +30,8 @@ MQTTClient::MQTTClient(FSManager* fs, bool defdbg) :
 	#endif
 
     esp_log_level_set(_MODULE_, APP_MQTTCLIENT_LOG_LEVEL);
-    esp_log_level_set("MQTT_CLIENT", APP_MQTTCLIENT_LOG_LEVEL);
-    esp_log_level_set("TRANS_TCP", APP_MQTTCLIENT_LOG_LEVEL);
+    esp_log_level_set("MQTT_CLIENT", APP_MQTTAPI_LOG_LEVEL);
+    esp_log_level_set("TRANS_TCP", APP_MQTTAPI_LOG_LEVEL);
 
     
 
@@ -68,11 +68,11 @@ void MQTTClient::init(const char* rootTopic, const char* clientId, const char* n
 	sprintf(subscTopic[0], "%s/%s/get/#", rootTopic, networkId);
     sprintf(subscTopic[1], "%s/%s/set/#", rootTopic, networkId);
 
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Configuración propia del cliente MQTT:");
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Mqtt server: %s", _mqtt_man.cfg.mqttUrl);
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Mqtt port: %d", _mqtt_man.cfg.mqttPort);
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Mqtt user: %s", _mqtt_man.cfg.mqttUser);
-    DEBUG_TRACE_I(_EXPR_, _MODULE_, "Mqtt password: %s", _mqtt_man.cfg.mqttPass);
+    DEBUG_TRACE_D(_EXPR_, _MODULE_, "Configuracion propia del cliente MQTT:");
+    DEBUG_TRACE_D(_EXPR_, _MODULE_, "Mqtt server: %s", _mqtt_man.cfg.mqttUrl);
+    DEBUG_TRACE_D(_EXPR_, _MODULE_, "Mqtt port: %d", _mqtt_man.cfg.mqttPort);
+    DEBUG_TRACE_D(_EXPR_, _MODULE_, "Mqtt user: %s", _mqtt_man.cfg.mqttUser);
+    DEBUG_TRACE_D(_EXPR_, _MODULE_, "Mqtt password: %s", _mqtt_man.cfg.mqttPass);
 
     setConfigMQTTServer(_mqtt_man.cfg.mqttUrl,
          _mqtt_man.cfg.mqttPort,
@@ -155,6 +155,7 @@ esp_err_t MQTTClient::mqtt_EventHandler(esp_mqtt_event_handle_t event)
 
         case MQTT_EVENT_DISCONNECTED:
             DEBUG_TRACE_D(_EXPR_, _MODULE_, "MQTT_EVENT_DISCONNECTED");
+            ev = MqttDiscEvt;
             _mqtt_man.stat.isConnected = false;
             break;
 
@@ -264,7 +265,7 @@ void MQTTClient::parseMqttTopic(char* localTopic, const char* mqttTopic)
     if(MQ::MQClient::isTokenRoot(mqttTopic, rootNetworkTopic))
         strcpy(localTopic, &mqttTopic[strlen(rootNetworkTopic)+1]);
 
-	DEBUG_TRACE_D(_EXPR_, _MODULE_, "Conversión de topic mqtt '%s' a topic local '%s'", mqttTopic, localTopic);
+	DEBUG_TRACE_D(_EXPR_, _MODULE_, "Conversion de topic mqtt '%s' a topic local '%s'", mqttTopic, localTopic);
 }
 
 
