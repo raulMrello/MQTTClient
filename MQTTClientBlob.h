@@ -43,6 +43,7 @@ namespace Blob
 	/** Estados del cliente MQTT */
 	enum MqttStatusFlags
 	{
+		Disconnected	= 0,
 		Subscribing     = (1 << 0), //!< Conectando
 		RequestedDev	= (1 << 1),	//!< solicitada suscripci�n al topic X
 		SubscribedDev	= (1 << 5),//!< Suscrito al topic X
