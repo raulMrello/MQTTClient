@@ -47,7 +47,7 @@ void MQTTClient::restoreConfig(){
 
 	uint32_t crc = 0;
 	_mqtt_man.uid = UID_MQTT_MANAGER;
-	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Recuperando datos de memoria NV...");
+	DEBUG_TRACE_D(_EXPR_, _MODULE_, "Recuperando datos de memoria NV...");
 	bool success = true;
 	if(!restoreParameter("MqttUpdFlags", &_mqtt_man.cfg.updFlagMask, sizeof(uint32_t), NVSInterface::TypeUint32)){
 		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS leyendo UpdFlags!");
@@ -92,7 +92,7 @@ void MQTTClient::restoreConfig(){
 
 	if(success){
 		// chequea el checksum crc32 y despu�s la integridad de los datos
-		DEBUG_TRACE_I(_EXPR_, _MODULE_, "Datos recuperados. Chequeando integridad...");
+		DEBUG_TRACE_D(_EXPR_, _MODULE_, "Datos recuperados. Chequeando integridad...");
 		if(Blob::getCRC32(&_mqtt_man.cfg, sizeof(Blob::MQTTCfgData_t)) != crc){
 			DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_CFG. Ha fallado el checksum");
 		}
@@ -116,7 +116,7 @@ void MQTTClient::restoreConfig(){
 
 //------------------------------------------------------------------------------------
 void MQTTClient::saveConfig(){
-	DEBUG_TRACE_I(_EXPR_, _MODULE_, "Guardando datos en memoria NV...");
+	DEBUG_TRACE_D(_EXPR_, _MODULE_, "Guardando datos en memoria NV...");
 
 	if(!saveParameter("MqttUpdFlags", &_mqtt_man.cfg.updFlagMask, sizeof(uint32_t), NVSInterface::TypeUint32)){
 		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_NVS grabando UpdFlags!");
