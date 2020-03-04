@@ -62,6 +62,8 @@ public:
 		return _json_supported;
 	}
 
+	uint32_t GetStatus(){ return (uint32_t)_mqtt_man.stat.connStatus;}
+
 private:
 	/** M�ximo n�mero de mensajes alojables en la cola asociada a la m�quina de estados */
 	static const uint32_t MaxQueueMessages = 16;
