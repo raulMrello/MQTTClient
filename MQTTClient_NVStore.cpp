@@ -7,6 +7,7 @@ static const char* _MODULE_ = "[MqttCli].......";
 //------------------------------------------------------------------------------------
 bool MQTTClient::checkIntegrity(){
 	if(_mqtt_man.cfg.nvs_id != APP_MQTTCLIENT_NVS_ID){
+		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERROR nvs_id=%d", _mqtt_man.cfg.nvs_id);
 		return false;
 	}
 	if(strlen(_mqtt_man.cfg.mqttUrl) == 0 || strlen(_mqtt_man.cfg.mqttUrl) >= Blob::MaxLengthOfMqttStrings){
@@ -68,12 +69,11 @@ void MQTTClient::restoreConfig(){
     		esp_log_level_set("MQTT_CLIENT", _mqtt_man.cfg.verbosity);
     		esp_log_level_set("TRANS_TCP", _mqtt_man.cfg.verbosity);
     		DEBUG_TRACE_D(_EXPR_, _MODULE_, "Verbosity = %d", _mqtt_man.cfg.verbosity);
+    		return;
     	}
 	}
-	else{
-		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_FS. Error en la recuperaci�n de datos. Establece configuraci�n por defecto");
-		setDefaultConfig();
-	}
+	DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERR_FS. Error en la recuperaci�n de datos. Establece configuraci�n por defecto");
+	setDefaultConfig();
 }
 
 
