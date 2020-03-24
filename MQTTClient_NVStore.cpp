@@ -6,6 +6,9 @@ static const char* _MODULE_ = "[MqttCli].......";
 
 //------------------------------------------------------------------------------------
 bool MQTTClient::checkIntegrity(){
+	if(_mqtt_man.cfg.nvs_id != APP_MQTTCLIENT_NVS_ID){
+		return false;
+	}
 	if(strlen(_mqtt_man.cfg.mqttUrl) == 0 || strlen(_mqtt_man.cfg.mqttUrl) >= Blob::MaxLengthOfMqttStrings){
 		DEBUG_TRACE_W(_EXPR_, _MODULE_, "ERROR strlen(mqttUrl) %d", strlen(_mqtt_man.cfg.mqttUrl));
 		return false;
@@ -38,6 +41,7 @@ void MQTTClient::setDefaultConfig(){
 	strncpy(_mqtt_man.cfg.mqttPass, MQTT_PASS, Blob::MaxLengthOfPassLength);
 	_mqtt_man.cfg.mqttPort = MQTT_PORT;
 	_mqtt_man.cfg.verbosity = APP_MQTTCLIENT_LOG_LEVEL;
+	_mqtt_man.cfg.nvs_id = APP_MQTTCLIENT_NVS_ID;
 	saveConfig();
 }
 
