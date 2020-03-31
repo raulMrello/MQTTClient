@@ -87,7 +87,8 @@ namespace Blob
 		char username[MaxLengthOfLoginStrings];
 		char passwd[MaxLengthOfLoginStrings];
 		esp_log_level_t verbosity;	//!< Nivel de verbosity para las trazas de depuraci�n
-		 uint32_t _keys;
+		uint32_t nvs_id;
+		uint32_t _keys;
 	};
 	struct MQTTStatData_t
 	{
