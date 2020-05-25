@@ -71,6 +71,8 @@ private:
 	/** Máximo número de topics a los que puede estar suscrito en remoto */
 	static const uint8_t MaxSubscribedTopics = 2;
 
+	char last_will_topic[Blob::MaxLengthOfMqttStrings];
+
 	/** Parámetros de conexión estáticos: topics de dispositivo y grupo, id de la red y UID del nodo */
 	char rootNetworkTopic[Blob::MaxLengthOfMqttStrings];
 	char clientId[Blob::MaxLengthOfMqttStrings];
