@@ -118,7 +118,15 @@ void MQTTClient::setConfigMQTTServer(const char *host, uint32_t port, const char
     mqttCfg.port = port;
     mqttCfg.username = user;
     mqttCfg.password = pass;
+    mqttCfg.keepalive = 30;
     mqttCfg.event_handle = mqtt_EventHandler_cb;
+
+    sprintf(last_will_topic, "%s/stat/0/%s/last_will/%s", this->rootNetworkTopic, this->clientId, _sub_topic_base);
+    mqttCfg.lwt_topic = last_will_topic;
+    mqttCfg.lwt_msg = "{}";
+    mqttCfg.lwt_msg_len = strlen(mqttCfg.lwt_msg);
+    mqttCfg.lwt_qos = 0;
+    mqttCfg.lwt_retain  = 0;
 }
 
 
