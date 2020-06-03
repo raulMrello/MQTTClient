@@ -74,8 +74,8 @@ private:
 	char last_will_topic[Blob::MaxLengthOfMqttStrings];
 
 	/** Parámetros de conexión estáticos: topics de dispositivo y grupo, id de la red y UID del nodo */
-	char rootNetworkTopic[Blob::MaxLengthOfMqttStrings];
-	char clientId[Blob::MaxLengthOfMqttStrings];
+	char rootNetworkTopic[Blob::MaxLengthOfMqttConfigs];
+	char clientId[Blob::MaxLengthOfMqttConfigs];
 	char subscTopic[MaxSubscribedTopics][Blob::MaxLengthOfMqttStrings];
 
 	/* Mapa para comprobar si la conexión de los subscriptores se ha hecho correctamente*/
