@@ -9,7 +9,6 @@ static const char* _MODULE_ = "[MqttCli].......";
 
 
 //------------------------------------------------------------------------------------
-mwifi_data_type_t data_type      = {0x0};
 static Callback<esp_err_t(esp_mqtt_event_handle_t)> s_mqtt_EventHandle_cb;
 
 
