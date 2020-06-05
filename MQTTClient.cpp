@@ -31,6 +31,7 @@ MQTTClient::MQTTClient(FSManager* fs, bool defdbg) :
     esp_log_level_set(_MODULE_, APP_MQTTCLIENT_LOG_LEVEL);
     esp_log_level_set("MQTT_CLIENT", APP_MQTTAPI_LOG_LEVEL);
     esp_log_level_set("TRANS_TCP", APP_MQTTAPI_LOG_LEVEL);
+    esp_log_level_set("OUTBOX", APP_MQTTAPI_LOG_LEVEL);
 
     
 
