@@ -89,6 +89,9 @@ cJSON* getJsonFromMQTTCliCfg(const Blob::MQTTCfgData_t& cfg){
 		return NULL;
 	}
 	cJSON_AddItemToObject(mqtt, JsonParser::p_mqttPass, value);
+
+	// key: pingInterval
+	cJSON_AddNumberToObject(mqtt, JsonParser::p_pingInterval, cfg.pingInterval);
 	return mqtt;
 }
 
@@ -196,6 +199,10 @@ uint32_t getMQTTCliCfgFromJson(Blob::MQTTCfgData_t &cfg, cJSON* json){
 			strncpy(cfg.mqttPass, str, Blob::MaxLengthOfPassLength);
 			keys |= Blob::MqttKeyCfgPasswd;
 		}
+	}
+	if((obj = cJSON_GetObjectItem(json, JsonParser::p_pingInterval)) != NULL){
+		cfg.pingInterval = obj->valueint;
+		keys |= Blob::MqttKeyCfgPingInterval;
 	}
 
 	cfg._keys = keys;

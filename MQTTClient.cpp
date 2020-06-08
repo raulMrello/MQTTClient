@@ -436,3 +436,23 @@ void MQTTClient::stop(){
 void MQTTClient::start(){
     esp_mqtt_client_start(clientHandle);
 }
+
+
+void MQTTClient::sendPing(){
+    char* pub_topic = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
+    MBED_ASSERT(pub_topic);
+    sprintf(pub_topic, "stat/ping/%s", _pub_topic_base);
+    
+    if(_json_supported){
+        cJSON* jStat = cJSON_CreateObject();
+        MBED_ASSERT(jStat);
+
+        MQ::MQClient::publish(pub_topic, &jStat, sizeof(cJSON**), &_publicationCb);
+        cJSON_Delete(jStat);
+    }
+    else{
+        MQ::MQClient::publish(pub_topic, "{}", strlen("{}")+1, &_publicationCb);
+    }
+    Heap::memFree(pub_topic);
+    DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT ping");
+}

@@ -230,6 +230,11 @@ private:
 		Callback<void(const char*, int32_t)> *publisher);
 
 	esp_err_t mqtt_EventHandler(esp_mqtt_event_handle_t event);
+
+
+	/****** PING INTERVAL ******/
+	RtosTimer* pingTimer;
+	void sendPing();
 };
 
 #endif /*__MQTTCLIENT__H */
