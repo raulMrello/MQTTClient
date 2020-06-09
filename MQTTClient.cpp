@@ -33,7 +33,7 @@ MQTTClient::MQTTClient(FSManager* fs, bool defdbg) :
     esp_log_level_set("TRANS_TCP", APP_MQTTAPI_LOG_LEVEL);
     esp_log_level_set("OUTBOX", APP_MQTTAPI_LOG_LEVEL);
 
-    
+    pingTimer = NULL;
 
     msgCounter = 0;
     // Carga callbacks estáticas de publicación/suscripción
