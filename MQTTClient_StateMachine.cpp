@@ -66,6 +66,15 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
 
             _ready = true;
 
+            if(pingTimer){
+                delete(pingTimer);
+            }
+            if(_mqtt_man.cfg.pingInterval > 0){
+                pingTimer = new RtosTimer(callback(this, &MQTTClient::sendPing), osTimerPeriodic);
+                MBED_ASSERT(pingTimer);
+                pingTimer->start(_mqtt_man.cfg.pingInterval*1000);
+            }
+
         	return State::HANDLED;
         }
 
@@ -314,10 +323,13 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                 }
 			}
 
-            // espera un segundo para completar el reinicio
-            DEBUG_TRACE_W(_EXPR_, _MODULE_, "#@#@#@#@#@------- REINICIANDO DISPOSITIVO -------@#@#@#@#@#");
-            Thread::wait(1000);
-            esp_restart();
+            // si el unico campo que se ha modificado es el pingInterval, no reinicia el dispositvo
+            if(req->data.cfg._keys != Blob::MqttKeyNames::MqttKeyCfgPingInterval){
+                // espera un segundo para completar el reinicio
+                DEBUG_TRACE_W(_EXPR_, _MODULE_, "#@#@#@#@#@------- REINICIANDO DISPOSITIVO -------@#@#@#@#@#");
+                Thread::wait(1000);
+                esp_restart();
+            }
 
 			return State::HANDLED;
 		}

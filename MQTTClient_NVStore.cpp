@@ -43,6 +43,7 @@ void MQTTClient::setDefaultConfig(){
 	_mqtt_man.cfg.mqttPort = MQTT_PORT;
 	_mqtt_man.cfg.verbosity = APP_MQTTCLIENT_LOG_LEVEL;
 	_mqtt_man.cfg.nvs_id = APP_MQTTCLIENT_NVS_ID;
+	_mqtt_man.cfg.pingInterval = 900;
 	saveConfig();
 }
 
@@ -124,6 +125,16 @@ void MQTTClient::_updateConfig(const mqtt_manager& data, Blob::ErrorData_t& err)
 	}
 	if(data.cfg._keys & Blob::MqttKeyCfgPasswd){
 		strncpy(_mqtt_man.cfg.mqttPass, data.cfg.mqttPass, Blob::MaxLengthOfPassLength);
+	}
+	if(data.cfg._keys & Blob::MqttKeyCfgPingInterval){
+		_mqtt_man.cfg.pingInterval = data.cfg.pingInterval;
+		// Si se actualiza el ping interval, se elimina el timer y se vuelve a ejecutar con el nuevo intervalo
+		if(pingTimer){
+			delete(pingTimer);
+		}
+		pingTimer = new RtosTimer(callback(this, &MQTTClient::sendPing), osTimerPeriodic);
+		MBED_ASSERT(pingTimer);
+		pingTimer->start(_mqtt_man.cfg.pingInterval*1000);
 	}
 
 	strcpy(err.descr, Blob::errList[err.code]);
