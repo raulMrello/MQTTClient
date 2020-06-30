@@ -7,7 +7,6 @@
 #include "mqtt_client.h"
 #include "JsonParserBlob.h"
 #include <map>
-#include <mwifi.h>
 #include <algorithm>
 #include "MQTTClient_UserConfig.h"
 /** Flag para habilitar el soporte de objetos JSON en las suscripciones a MQLib
@@ -74,8 +73,8 @@ private:
 	char last_will_topic[Blob::MaxLengthOfMqttStrings];
 
 	/** Parámetros de conexión estáticos: topics de dispositivo y grupo, id de la red y UID del nodo */
-	char rootNetworkTopic[Blob::MaxLengthOfMqttStrings];
-	char clientId[Blob::MaxLengthOfMqttStrings];
+	char rootNetworkTopic[Blob::MaxLengthOfMqttConfigs];
+	char clientId[Blob::MaxLengthOfMqttConfigs];
 	char subscTopic[MaxSubscribedTopics][Blob::MaxLengthOfMqttStrings];
 
 	/* Mapa para comprobar si la conexión de los subscriptores se ha hecho correctamente*/
@@ -231,6 +230,11 @@ private:
 		Callback<void(const char*, int32_t)> *publisher);
 
 	esp_err_t mqtt_EventHandler(esp_mqtt_event_handle_t event);
+
+
+	/****** PING INTERVAL ******/
+	RtosTimer* pingTimer;
+	void sendPing();
 };
 
 #endif /*__MQTTCLIENT__H */

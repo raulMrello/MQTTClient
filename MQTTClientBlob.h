@@ -36,6 +36,7 @@ namespace Blob
 
 	/** Tama�o m�ximo de las cadenas de texto relacionadas con par�metros del cliente mqtt */
 	static const uint8_t MaxLengthOfMqttStrings = 64;
+	static const uint8_t MaxLengthOfMqttConfigs = 22;
 	static const uint8_t MaxLengthOfLoginStrings = 16;
 	static const uint8_t MaxLengthOfUserLength = 32;
 	static const uint8_t MaxLengthOfPassLength = 64;
@@ -67,6 +68,7 @@ namespace Blob
 		MqttKeyCfgUsername	= (1 << 6),
 		MqttKeyCfgPasswd	= (1 << 7),
 		MqttKeyCfgVerbosity	= (1 << 8),
+		MqttKeyCfgPingInterval	= (1 << 9),
 		//
 		MqttKeyCfgAll     = 0x7f,
 	};
@@ -88,6 +90,8 @@ namespace Blob
 		char passwd[MaxLengthOfLoginStrings];
 		esp_log_level_t verbosity;	//!< Nivel de verbosity para las trazas de depuraci�n
 		uint32_t nvs_id;
+
+		int pingInterval;
 		uint32_t _keys;
 	};
 	struct MQTTStatData_t

@@ -9,7 +9,6 @@ static const char* _MODULE_ = "[MqttCli].......";
 
 
 //------------------------------------------------------------------------------------
-mwifi_data_type_t data_type      = {0x0};
 static Callback<esp_err_t(esp_mqtt_event_handle_t)> s_mqtt_EventHandle_cb;
 
 
@@ -32,8 +31,9 @@ MQTTClient::MQTTClient(FSManager* fs, bool defdbg) :
     esp_log_level_set(_MODULE_, APP_MQTTCLIENT_LOG_LEVEL);
     esp_log_level_set("MQTT_CLIENT", APP_MQTTAPI_LOG_LEVEL);
     esp_log_level_set("TRANS_TCP", APP_MQTTAPI_LOG_LEVEL);
+    esp_log_level_set("OUTBOX", APP_MQTTAPI_LOG_LEVEL);
 
-    
+    pingTimer = NULL;
 
     msgCounter = 0;
     // Carga callbacks estáticas de publicación/suscripción
@@ -435,4 +435,24 @@ void MQTTClient::stop(){
 
 void MQTTClient::start(){
     esp_mqtt_client_start(clientHandle);
+}
+
+
+void MQTTClient::sendPing(){
+    char* pub_topic = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
+    MBED_ASSERT(pub_topic);
+    sprintf(pub_topic, "stat/ping/%s", _pub_topic_base);
+    
+    if(_json_supported){
+        cJSON* jStat = cJSON_CreateObject();
+        MBED_ASSERT(jStat);
+
+        MQ::MQClient::publish(pub_topic, &jStat, sizeof(cJSON**), &_publicationCb);
+        cJSON_Delete(jStat);
+    }
+    else{
+        MQ::MQClient::publish(pub_topic, "{}", strlen("{}")+1, &_publicationCb);
+    }
+    Heap::memFree(pub_topic);
+    DEBUG_TRACE_I(_EXPR_, _MODULE_, "MQTT ping");
 }
