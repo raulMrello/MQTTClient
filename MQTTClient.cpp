@@ -77,7 +77,8 @@ void MQTTClient::init(const char* rootTopic, const char* clientId, const char* n
     setConfigMQTTServer(_mqtt_man.cfg.mqttUrl,
          _mqtt_man.cfg.mqttPort,
          _mqtt_man.cfg.mqttUser,
-         _mqtt_man.cfg.mqttPass);
+         _mqtt_man.cfg.mqttPass,
+         _mqtt_man.cfg.keepAlive);
 
     //carga la configuración y ejecuta el cliente mqtt
     clientHandle = esp_mqtt_client_init(&mqttCfg);
@@ -112,13 +113,13 @@ bool MQTTClient::setConfig(const char *url, uint32_t port, const char *user, con
 }
 
 //------------------------------------------------------------------------------------
-void MQTTClient::setConfigMQTTServer(const char *host, uint32_t port, const char *user, const char *pass)
+void MQTTClient::setConfigMQTTServer(const char *host, uint32_t port, const char *user, const char *pass, uint16_t keepA)
 {
     mqttCfg.host = host;
     mqttCfg.port = port;
     mqttCfg.username = user;
     mqttCfg.password = pass;
-    mqttCfg.keepalive = 30;
+    mqttCfg.keepalive = keepA;
     mqttCfg.event_handle = mqtt_EventHandler_cb;
 
     sprintf(last_will_topic, "%s/stat/0/%s/last_will/%s", this->rootNetworkTopic, this->clientId, _sub_topic_base);

@@ -161,7 +161,7 @@ private:
 	};
 
 	//Establece los valores de configuración para conectar con el servidor MQTT
-	void setConfigMQTTServer(const char*, uint32_t, const char*, const char*);
+	void setConfigMQTTServer(const char*, uint32_t, const char*, const char*, uint16_t);
 
 	/** Callback invocada al recibir una actualización de un topic local al que está suscrito
 	 *  @param topic Identificador del topic
