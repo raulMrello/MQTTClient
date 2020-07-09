@@ -35,7 +35,7 @@ void MQTTClient::setDefaultConfig(){
 	_mqtt_man.uid = UID_MQTT_MANAGER;
 	_mqtt_man.cfg.updFlagMask = Blob::EnableMqttCfgUpdNotif;
 	_mqtt_man.cfg.groupMask = 0;
-	_mqtt_man.cfg.keepAlive = 0;
+	_mqtt_man.cfg.keepAlive = 30;
 	_mqtt_man.cfg.qos = 0;
 	strncpy(_mqtt_man.cfg.mqttUrl, MQTT_URL, Blob::MaxLengthOfMqttStrings);
 	strncpy(_mqtt_man.cfg.mqttUser, MQTT_USER, Blob::MaxLengthOfUserLength);
@@ -132,9 +132,11 @@ void MQTTClient::_updateConfig(const mqtt_manager& data, Blob::ErrorData_t& err)
 		if(pingTimer){
 			delete(pingTimer);
 		}
-		pingTimer = new RtosTimer(callback(this, &MQTTClient::sendPing), osTimerPeriodic);
-		MBED_ASSERT(pingTimer);
-		pingTimer->start(_mqtt_man.cfg.pingInterval*1000);
+		if(_mqtt_man.cfg.pingInterval > 0){
+			pingTimer = new RtosTimer(callback(this, &MQTTClient::sendPing), osTimerPeriodic);
+			MBED_ASSERT(pingTimer);
+			pingTimer->start(_mqtt_man.cfg.pingInterval*1000);
+		}
 	}
 
 	strcpy(err.descr, Blob::errList[err.code]);
