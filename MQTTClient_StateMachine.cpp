@@ -367,6 +367,41 @@ State::StateResult MQTTClient::Init_EventHandler(State::StateEvent* se)
                 DEBUG_TRACE_D(_EXPR_, _MODULE_, "Enviada respuesta con la configuraci�n solicitada");
                 return State::HANDLED;
             }
+			return State::HANDLED;
+		}
+		case RecvValueGet: {
+			Blob::GetRequest_t* req = (Blob::GetRequest_t*)st_msg->msg;
+			// prepara el topic al que responder
+			char* pub_topic = (char*)Heap::memAlloc(MQ::MQClient::getMaxTopicLen());
+			MBED_ASSERT(pub_topic);
+			sprintf(pub_topic, "stat/value/%s", _pub_topic_base);
+
+			// responde con los datos solicitados y con los errores (si hubiera) de la decodificaci�n de la solicitud
+			Blob::Response_t<mqtt_manager>* resp = new Blob::Response_t<mqtt_manager>(req->idTrans, req->_error, _mqtt_man);
+
+			if(_json_supported){
+				cJSON* jresp = JsonParser::getJsonFromResponse(*resp, ObjSelectState);
+				if(jresp){
+					char* jmsg = cJSON_PrintUnformatted(jresp);
+					cJSON_Delete(jresp);
+					MQ::MQClient::publish(pub_topic, jmsg, strlen(jmsg)+1, &_publicationCb);
+					Heap::memFree(jmsg);
+					delete(resp);
+					Heap::memFree(pub_topic);
+					return State::HANDLED;
+				}
+			}
+			else{
+				MQ::MQClient::publish(pub_topic, resp, sizeof(Blob::Response_t<mqtt_manager>), &_publicationCb);
+				delete(resp);
+
+				// libera la memoria asignada al topic de publicaci�n
+				Heap::memFree(pub_topic);
+
+				DEBUG_TRACE_W(_EXPR_, _MODULE_, "Enviada respuesta con stat solicitada");
+				return State::HANDLED;
+			}
+			return State::HANDLED;
 		}
 
         default:

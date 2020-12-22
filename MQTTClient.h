@@ -123,6 +123,7 @@ private:
 		RecvCfgSet		= (State::EV_RESERVED_USER << 19),	/// Flag al cambiar la configuraci�n del dispositivo 'set/cfg/mqtt'
 		FwdMsgLocalEvt	= (State::EV_RESERVED_USER << 20),	/// Flag al solicitar un reenv�o hacia el broker mqtt
 		RecvCfgGet		= (State::EV_RESERVED_USER << 21),	/// Flag al solicitar la configuraci�n del dispositivo 'get/cfg/mqtt'
+		RecvValueGet	= (State::EV_RESERVED_USER << 22),	/// Flag al solicitar value 'get/value/mqtt'
 		//-------------
 		UNKNOWN_EVENT	= (State::EV_RESERVED_USER << 31),	/// Flag desconocido
 	};
