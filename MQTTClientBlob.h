@@ -35,7 +35,7 @@ namespace Blob
 {
 
 	/** Tama�o m�ximo de las cadenas de texto relacionadas con par�metros del cliente mqtt */
-	static const uint8_t MaxLengthOfMqttStrings = 64;
+	static const uint8_t MaxLengthOfMqttStrings = 128;
 	static const uint8_t MaxLengthOfMqttConfigs = 22;
 	static const uint8_t MaxLengthOfLoginStrings = 16;
 	static const uint8_t MaxLengthOfUserLength = 32;
