@@ -19,7 +19,7 @@
 #include "common_objects.h"
 
 /** Versiones soportadas */
-#define VERS_MQTT_YTL			0
+#define VERS_MQTT_YTL			22
 
 
 /** Selecci�n de la versi�n utilizada 	*/
